@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tool Mask Labeler</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 12px 16px; background: #fafafa; color: #222; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 8px; }
+  main { display: grid; grid-template-columns: auto 1fr; gap: 16px; }
+  #stage { position: relative; height: 85vh; aspect-ratio: 960 / 1040; }
+  #stage img, #stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #stage canvas { cursor: crosshair; }
+  #status { font-family: monospace; }
+  table { border-collapse: collapse; font-size: 13px; }
+  td { padding: 2px 8px 2px 0; }
+  td:first-child { font-family: monospace; font-weight: bold; }
+  .help { font-size: 13px; color: #555; max-width: 32em; }
+</style>
+</head>
+<body>
+
+<header>
+  <button id="prevButton">◀ prev</button>
+  <span id="frameName"></span>
+  <button id="nextButton">next ▶</button>
+  <button id="nextTodoButton">next unlabelled ▶▶</button>
+  <span id="progress"></span>
+</header>
+
+<main>
+  <div id="stage">
+    <img id="frame" alt="">
+    <img id="mask" alt="" style="opacity: 0.45">
+    <canvas id="clicks" width="960" height="1040"></canvas>
+  </div>
+  <aside>
+    <div id="status"></div>
+    <h3>Keys and mouse</h3>
+    <table>
+      <tr><td>click</td><td>add point on a tool</td></tr>
+      <tr><td>shift-click</td><td>add point NOT on the tool (or right-click)</td></tr>
+      <tr><td>n</td><td>start the next tool (new object)</td></tr>
+      <tr><td>z</td><td>undo last point</td></tr>
+      <tr><td>s</td><td>save this frame</td></tr>
+      <tr><td>e</td><td>save as empty (no instrument in view)</td></tr>
+      <tr><td>← →</td><td>previous / next frame</td></tr>
+    </table>
+    <p class="help">
+      Label every robotic instrument: shaft, wrist and jaws.
+      Do not include the retractor, teeth, needle or suture.
+      Give each instrument its own object (key n), even when they touch.
+      Unsaved changes are lost when you change frame.
+    </p>
+  </aside>
+</main>
+
+<script>
+const COLORS = ['#ff0', '#0ff', '#f0f', '#fa0'];
+const canvas = document.getElementById('clicks');
+const context = canvas.getContext('2d');
+const state = { frames: [], index: 0, objects: [[]], saved: true, covered: 0 };
+
+// ---------- server calls ----------
+
+async function getJson(url) {
+  return (await fetch(url)).json();
+}
+
+async function postJson(url, body) {
+  const response = await fetch(url, { method: 'POST', body: JSON.stringify(body) });
+  return response.json();
+}
+
+function currentName() {
+  return state.frames[state.index].name;
+}
+
+// ---------- drawing ----------
+
+function drawClicks() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  state.objects.forEach((clicks, i) => clicks.forEach(c => drawClick(c, COLORS[i % COLORS.length])));
+}
+
+function drawClick(click, color) {
+  context.beginPath();
+  context.arc(click.x, click.y, 7, 0, 2 * Math.PI);
+  context.fillStyle = click.positive ? color : '#f00';
+  context.fill();
+  context.strokeStyle = '#000';
+  context.stroke();
+}
+
+function renderStatus() {
+  const done = state.frames.filter(f => f.done).length;
+  document.getElementById('progress').textContent = `${done} / ${state.frames.length} labelled`;
+  document.getElementById('frameName').textContent = `${state.index + 1}. ${currentName()}`;
+  const saved = state.saved ? 'saved' : 'NOT saved';
+  const text = `object ${state.objects.length}  ·  covered ${(100 * state.covered).toFixed(1)}%  ·  ${saved}`;
+  document.getElementById('status').textContent = text;
+}
+
+function showMask(result) {
+  document.getElementById('mask').src = 'data:image/png;base64,' + result.mask;
+  state.covered = result.covered;
+  renderStatus();
+}
+
+// ---------- actions ----------
+
+async function updateMask() {
+  drawClicks();
+  showMask(await postJson('/predict', { name: currentName(), objects: state.objects }));
+}
+
+function addClick(e, positive) {
+  const box = canvas.getBoundingClientRect();
+  const x = (e.clientX - box.left) * canvas.width / box.width;
+  const y = (e.clientY - box.top) * canvas.height / box.height;
+  state.objects[state.objects.length - 1].push({ x, y, positive });
+  state.saved = false;
+  updateMask();
+}
+
+function newObject() {
+  if (state.objects[state.objects.length - 1].length) state.objects.push([]);
+  renderStatus();
+}
+
+function undoClick() {
+  const last = state.objects[state.objects.length - 1];
+  if (!last.length && state.objects.length > 1) state.objects.pop();
+  state.objects[state.objects.length - 1].pop();
+  state.saved = false;
+  updateMask();
+}
+
+async function save(objects) {
+  state.objects = objects;
+  showMask(await postJson('/save', { name: currentName(), objects }));
+  state.frames[state.index].done = true;
+  state.saved = true;
+  drawClicks();
+  renderStatus();
+}
+
+async function openFrame(index) {
+  state.index = (index + state.frames.length) % state.frames.length;
+  document.getElementById('frame').src = '/frame?name=' + currentName();
+  const saved = await getJson('/clicks?name=' + currentName());
+  state.objects = saved.objects.length ? saved.objects : [[]];
+  state.saved = true;
+  await updateMask();
+}
+
+function nextUnlabelled() {
+  const offset = state.frames.slice(state.index + 1).findIndex(f => !f.done);
+  if (offset >= 0) openFrame(state.index + 1 + offset);
+}
+
+// ---------- input ----------
+
+const KEYS = {
+  n: newObject,
+  z: undoClick,
+  s: () => save(state.objects),
+  e: () => save([[]]),
+  ArrowLeft: () => openFrame(state.index - 1),
+  ArrowRight: () => openFrame(state.index + 1),
+};
+
+document.addEventListener('keydown', e => {
+  const action = KEYS[e.key];
+  if (!action) return;
+  e.preventDefault();
+  action();
+});
+canvas.addEventListener('click', e => addClick(e, !e.shiftKey));
+canvas.addEventListener('contextmenu', e => { e.preventDefault(); addClick(e, false); });
+document.getElementById('prevButton').onclick = () => openFrame(state.index - 1);
+document.getElementById('nextButton').onclick = () => openFrame(state.index + 1);
+document.getElementById('nextTodoButton').onclick = nextUnlabelled;
+
+async function start() {
+  state.frames = await getJson('/frames');
+  openFrame(Math.max(0, state.frames.findIndex(f => !f.done)));
+}
+start();
+</script>
+</body>
+</html>

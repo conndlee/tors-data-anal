@@ -1,0 +1,21 @@
+name: tors1
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - numpy
+  - pandas
+  - pyarrow
+  - scipy
+  - pip:
+      - rosbags
+      # visual field work (GPU; the CUDA 12.8 build is needed for RTX 50-series cards)
+      - --extra-index-url https://download.pytorch.org/whl/cu128
+      - torch
+      - torchvision
+      - opencv-python-headless
+      # SAM 2: install from a clone with SAM2_BUILD_CUDA=0 pip install -e ~/src/sam2
+      # checkpoint: ~/src/sam2/checkpoints/sam2.1_hiera_large.pt
+# After creating the env, make it use its own libstdc++ (torch otherwise loads the older system one):
+#   conda env config vars set -n tors1 LD_LIBRARY_PATH=$CONDA_PREFIX/lib

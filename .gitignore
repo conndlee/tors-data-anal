@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Raw experiment data (rosbags, videos)
+data/
+
+# Regenerable review images (scripts/review_frames.py)
+results/review/frames/
+results/review/sheets/
+
+# Regenerable occlusion check overlays (scripts/occlusion.py)
+results/occlusion/check/
