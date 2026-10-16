@@ -1,0 +1,13 @@
+video,event,start_s,end_s,duration_s,note
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,1178.584,1278.825,100.241,psm2 -> LARGE_NEEDLE_DRIVER:400006[..] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,1187.517,1195.331,7.814,psm1 -> ROUND_TIP_SCISSORS:420007[..] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,1321.896,1323.862,1.966,psm2 -> LARGE_NEEDLE_DRIVER:400006[..] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,1943.749,1967.76,24.011,psm2 -> ROUND_TIP_SCISSORS:420007[..] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,1957.369,2030.502,73.133,psm1 -> LARGE_NEEDLE_DRIVER:400006[..] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,2371.462,2391.441,19.979,psm2 -> LARGE_NEEDLE_DRIVER:420006[..11] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,2769.605,2781.28,11.675,psm2 -> LARGE_NEEDLE_DRIVER:420006[..11] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,4182.632,4183.837,1.205,psm2 -> LARGE_NEEDLE_DRIVER:420006[..11] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,5485.666,5486.777,1.111,psm1 -> MICRO_FORCEPS:400033[..] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,5611.41,5633.159,21.749,psm1 -> MICRO_FORCEPS:420033[..] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,5808.623,5976.388,167.765,psm1 -> MICRO_FORCEPS:420033[..] (logged)
+pig_oct07-2026-10-07_14.31.12.mp4,tool_out,6119.901,6126.907,7.006,psm1 -> MICRO_FORCEPS:420033[..] (logged)

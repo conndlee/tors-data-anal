@@ -1,0 +1,9 @@
+video,arm,t_bag,t_video,score,evidence,logged
+pig_oct08-2026-10-08_13.19.52.mp4,psm1,0.1,7.6,2,retraction,True
+pig_oct08-2026-10-08_13.19.52.mp4,psm2,0.1,7.6,2,retraction,True
+pig_oct08-2026-10-08_13.19.52.mp4,psm1,144.5,152.0,2,retraction,False
+pig_oct08-2026-10-08_13.19.52.mp4,psm1,277.3,284.8,2,jump,False
+pig_oct08-2026-10-08_13.19.52.mp4,psm2,496.4,503.9,5,jump + retraction,True
+pig_oct08-2026-10-08_13.19.52.mp4,psm1,507.0,514.5,8,freeze_jump + jump + retraction,True
+pig_oct08-2026-10-08_13.19.52.mp4,psm2,835.4,842.9,10,freeze_jump + jump + retraction,True
+pig_oct08-2026-10-08_13.19.52.mp4,psm1,2559.7,2567.2,10,freeze_jump + jump + retraction,True
