@@ -1,0 +1,74 @@
+===== 2026-10-07-14-42-15.bag  duration 6989 s (116.5 min)
+  /PSM1/measured_js: 660792 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -0.028, max -0.000
+    gaps > 0.5 s: 88, total 333.8 s
+      at     48.9 s, length 4.0 s
+      at     54.6 s, length 1.0 s
+      at    116.3 s, length 6.6 s
+      at    171.9 s, length 9.1 s
+      at    183.9 s, length 2.5 s
+      at    219.9 s, length 9.9 s
+      at    425.0 s, length 0.6 s
+      at    823.8 s, length 1.8 s
+      at   1433.2 s, length 18.9 s
+      at   1605.9 s, length 2.9 s
+    joints (613096 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw']
+    joints (47696 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw', 'jaw']
+  /PSM2/measured_js: 692225 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -0.030, max -0.000
+    gaps > 0.5 s: 4, total 25.0 s
+      at   2086.3 s, length 1.7 s
+      at   3697.7 s, length 6.4 s
+      at   5106.9 s, length 8.2 s
+      at   5350.8 s, length 8.7 s
+    joints (41881 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw', 'jaw']
+    joints (650344 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw']
+  /PSM1/jaw/measured_js: 688419 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -144.095, max -0.000
+    gaps > 0.5 s: 3, total 63.5 s
+      at   3698.7 s, length 19.2 s
+      at   5107.9 s, length 21.9 s
+      at   5353.8 s, length 22.3 s
+    joints (688419 msgs): ['jaw']
+  /PSM2/jaw/measured_js: 687971 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -729.139, max -0.000
+    gaps > 0.5 s: 3, total 67.8 s
+      at   3698.7 s, length 23.7 s
+      at   5107.9 s, length 25.7 s
+      at   5353.8 s, length 18.4 s
+    joints (687971 msgs): ['jaw']
+  /MTML/measured_js: 692540 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -0.042, max -0.000
+    gaps > 0.5 s: 3, total 22.2 s
+      at   3697.7 s, length 6.3 s
+      at   5106.9 s, length 8.2 s
+      at   5350.8 s, length 7.6 s
+    joints (692540 msgs): ['outer_yaw', 'shoulder_pitch', 'elbow_pitch', 'wrist_platform', 'wrist_pitch', 'wrist_yaw', 'wrist_roll']
+  /MTMR/measured_js: 692546 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -0.024, max -0.000
+    gaps > 0.5 s: 3, total 22.2 s
+      at   3697.7 s, length 6.3 s
+      at   5106.9 s, length 8.2 s
+      at   5350.8 s, length 7.7 s
+    joints (692546 msgs): ['outer_yaw', 'shoulder_pitch', 'elbow_pitch', 'wrist_platform', 'wrist_pitch', 'wrist_yaw', 'wrist_roll']
+  tool changes: 20
+         0.1 s  /PSM1/tool_type  LARGE_NEEDLE_DRIVER:400006[..]
+        24.0 s  /PSM2/tool_type  ROUND_TIP_SCISSORS:420007[..]
+       540.4 s  /PSM1/tool_type  ROUND_TIP_SCISSORS:420007[..]
+       621.0 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:400006[..]
+       713.4 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:400006[..]
+      1320.5 s  /PSM2/tool_type  ROUND_TIP_SCISSORS:420007[..]
+      1407.3 s  /PSM1/tool_type  LARGE_NEEDLE_DRIVER:400006[..]
+      1775.8 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:420006[..11]
+      2190.8 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:420006[..11]
+      3718.0 s  /PSM1/tool_type  LARGE_NEEDLE_DRIVER:400006[..]
+      3722.4 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:420006[..11]
+      4877.3 s  /PSM1/tool_type  MICRO_FORCEPS:400033[..]
+      5056.9 s  /PSM1/tool_type  MICRO_FORCEPS:420033[..]
+      5129.8 s  /PSM1/tool_type  LARGE_NEEDLE_DRIVER:420006[..11]
+      5133.5 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:420006[..11]
+      5147.0 s  /PSM1/tool_type  DEBAKEY_FORCEPS:400036[..]
+      5316.6 s  /PSM1/tool_type  MICRO_FORCEPS:420033[..]
+      5372.2 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:420006[..11]
+      5376.0 s  /PSM1/tool_type  MICRO_FORCEPS:420033[..]
+      5473.5 s  /PSM1/tool_type  MICRO_FORCEPS:420033[..]

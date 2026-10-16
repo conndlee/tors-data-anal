@@ -1,0 +1,58 @@
+===== 2026-06-15-10-13-45.bag  duration 7777 s (129.6 min)
+  /PSM1/measured_js: 705882 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.000, min -0.022, max -0.000
+    gaps > 0.5 s: 6, total 675.1 s
+      at    186.0 s, length 8.1 s
+      at    978.7 s, length 21.7 s
+      at   1037.4 s, length 36.4 s
+      at   2249.4 s, length 181.0 s
+      at   2886.6 s, length 99.4 s
+      at   3144.3 s, length 328.4 s
+    joints (634473 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw']
+    joints (71409 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw', 'jaw']
+  /PSM2/measured_js: 705923 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.000, min -0.024, max -0.000
+    gaps > 0.5 s: 6, total 674.8 s
+      at    186.0 s, length 8.1 s
+      at    978.7 s, length 21.7 s
+      at   1037.4 s, length 36.4 s
+      at   2249.4 s, length 181.0 s
+      at   2886.6 s, length 99.4 s
+      at   3144.3 s, length 328.3 s
+    joints (656024 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw']
+    joints (49899 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw', 'jaw']
+  /PSM1/jaw/measured_js: 757095 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -328.390, max -0.000
+    gaps > 0.5 s: 3, total 160.1 s
+      at    187.0 s, length 17.3 s
+      at   1041.0 s, length 32.8 s
+      at   2887.6 s, length 109.9 s
+    joints (757095 msgs): ['jaw']
+  /PSM2/jaw/measured_js: 756209 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -328.314, max -0.000
+    gaps > 0.5 s: 3, total 169.1 s
+      at    187.0 s, length 29.8 s
+      at   1041.0 s, length 32.8 s
+      at   2887.6 s, length 106.5 s
+    joints (756209 msgs): ['jaw']
+  /MTML/measured_js: 706834 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.000, min -0.022, max -0.000
+    gaps > 0.5 s: 6, total 665.2 s
+      at    186.0 s, length 6.6 s
+      at    978.7 s, length 19.7 s
+      at   1037.4 s, length 36.4 s
+      at   2249.4 s, length 178.9 s
+      at   2886.6 s, length 97.3 s
+      at   3144.3 s, length 326.3 s
+    joints (706834 msgs): ['outer_yaw', 'shoulder_pitch', 'elbow_pitch', 'wrist_platform', 'wrist_pitch', 'wrist_yaw', 'wrist_roll']
+  /MTMR/measured_js: 706826 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.000, min -0.020, max -0.000
+    gaps > 0.5 s: 6, total 665.2 s
+      at    186.0 s, length 6.6 s
+      at    978.7 s, length 19.7 s
+      at   1037.4 s, length 36.4 s
+      at   2249.4 s, length 178.9 s
+      at   2886.6 s, length 97.3 s
+      at   3144.3 s, length 326.3 s
+    joints (706826 msgs): ['outer_yaw', 'shoulder_pitch', 'elbow_pitch', 'wrist_platform', 'wrist_pitch', 'wrist_yaw', 'wrist_roll']
+  tool changes: 0

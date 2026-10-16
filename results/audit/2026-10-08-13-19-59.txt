@@ -1,0 +1,44 @@
+===== 2026-10-08-13-19-59.bag  duration 4183 s (69.7 min)
+  /PSM1/measured_js: 412994 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -0.026, max -0.000
+    gaps > 0.5 s: 19, total 31.1 s
+      at    275.0 s, length 2.3 s
+      at    349.6 s, length 1.2 s
+      at   1358.1 s, length 4.3 s
+      at   1491.8 s, length 1.6 s
+      at   1848.9 s, length 1.4 s
+      at   1862.1 s, length 2.3 s
+      at   1960.2 s, length 1.6 s
+      at   2133.7 s, length 2.2 s
+      at   2322.8 s, length 1.7 s
+      at   2335.4 s, length 0.7 s
+    joints (35584 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw', 'jaw']
+    joints (377410 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw']
+  /PSM2/measured_js: 416072 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -0.022, max -0.000
+    gaps > 0.5 s: 0, total 0.0 s
+    joints (38155 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw', 'jaw']
+    joints (377917 msgs): ['outer_yaw', 'outer_pitch', 'outer_insertion', 'outer_roll', 'outer_wrist_pitch', 'outer_wrist_yaw']
+  /PSM1/jaw/measured_js: 394374 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -73.131, max -0.000
+    gaps > 0.5 s: 0, total 0.0 s
+    joints (394374 msgs): ['jaw']
+  /PSM2/jaw/measured_js: 394857 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -86.602, max -0.000
+    gaps > 0.5 s: 0, total 0.0 s
+    joints (394857 msgs): ['jaw']
+  /MTML/measured_js: 416071 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -0.020, max -0.000
+    gaps > 0.5 s: 0, total 0.0 s
+    joints (416071 msgs): ['outer_yaw', 'shoulder_pitch', 'elbow_pitch', 'wrist_platform', 'wrist_pitch', 'wrist_yaw', 'wrist_roll']
+  /MTMR/measured_js: 416079 msgs, 100% with nonzero effort
+    header - bag time (s): median -0.001, min -0.023, max -0.000
+    gaps > 0.5 s: 0, total 0.0 s
+    joints (416079 msgs): ['outer_yaw', 'shoulder_pitch', 'elbow_pitch', 'wrist_platform', 'wrist_pitch', 'wrist_yaw', 'wrist_roll']
+  tool changes: 6
+       213.4 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:400006[..]
+       218.3 s  /PSM1/tool_type  ROUND_TIP_SCISSORS:420007[..]
+       581.0 s  /PSM1/tool_type  LARGE_NEEDLE_DRIVER:400006[..]
+       585.3 s  /PSM2/tool_type  ROUND_TIP_SCISSORS:420007[..]
+       920.0 s  /PSM2/tool_type  LARGE_NEEDLE_DRIVER:420006[..11]
+      2626.8 s  /PSM1/tool_type  MICRO_FORCEPS:400033[..]
