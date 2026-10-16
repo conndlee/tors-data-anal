@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Surgery Video Annotator</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 12px 16px; background: #fafafa; color: #222; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+  main { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  video { width: 100%; background: #000; }
+  #status { font-family: monospace; font-size: 15px; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border-bottom: 1px solid #ddd; padding: 4px; text-align: left; }
+  td.seek { cursor: pointer; color: #0645ad; font-family: monospace; }
+  td input { width: 100%; box-sizing: border-box; }
+  #legend td:first-child { font-family: monospace; font-weight: bold; }
+  .events { max-height: 60vh; overflow-y: auto; }
+  h3 { margin: 12px 0 6px; }
+  .timeline canvas { width: 100%; display: block; background: #fff; border: 1px solid #ddd; cursor: pointer; }
+  .timelineLabel { font-size: 12px; color: #555; margin: 6px 0 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <label>Video <input type="file" id="videoFile" accept="video/*"></label>
+  <label>FPS <input type="number" id="fps" value="30" min="1" style="width: 5em"></label>
+  <label>Import CSV <input type="file" id="csvFile" accept=".csv"></label>
+  <label>Timeline <input type="file" id="timelineFile" accept=".json"></label>
+  <button id="exportButton">Export CSV</button>
+</header>
+
+<main>
+  <section>
+    <video id="video" controls></video>
+    <div id="status"></div>
+    <div class="timeline" id="timeline" hidden>
+      <div class="timelineLabel">Whole video</div>
+      <canvas id="overview" height="170"></canvas>
+      <div class="timelineLabel">10 minutes around now</div>
+      <canvas id="zoom" height="170"></canvas>
+    </div>
+    <div>Open events: <span id="openSpans">none</span></div>
+  </section>
+
+  <aside>
+    <h3>Keys</h3>
+    <table id="legend"></table>
+    <h3>Events</h3>
+    <div class="events">
+      <table>
+        <thead><tr><th>Event</th><th>Start</th><th>End</th><th>Dur (s)</th><th>Note</th><th>Check</th><th></th></tr></thead>
+        <tbody id="eventRows"></tbody>
+      </table>
+    </div>
+  </aside>
+</main>
+
+<script>
+// Edit this list to change event types and hotkeys.
+// "span" events: press once to start, press again to end.
+// "point" events: press once to mark a single moment.
+const EVENT_TYPES = [
+  { key: '1', name: 'layer_nasal',   kind: 'span' },  // one block around all stitches of the layer
+  { key: '2', name: 'layer_muscle',  kind: 'span' },
+  { key: '3', name: 'layer_oral',    kind: 'span' },
+  { key: 'x', name: 'stitch',        kind: 'span' },  // needle first touches tissue -> last throw of the knot tightened
+  { key: '4', name: 'dissection',    kind: 'span' },
+  { key: '5', name: 'incision',      kind: 'span' },
+  { key: 'n', name: 'needle_through', kind: 'point' },  // needle fully out on the far side (end of bite); one per stitch
+  { key: 'u', name: 'cut',           kind: 'point' },  // assistant cuts the suture, after the stitch ends
+  { key: 'c', name: 'collision',     kind: 'point' },
+  { key: 'd', name: 'needle_drop',   kind: 'point' },
+  { key: 'g', name: 'regrasp',       kind: 'point' },
+  { key: 's', name: 'sync',          kind: 'point' },
+  { key: 't', name: 'tool_change',   kind: 'point' },  // note: arm and new tool, e.g. "psm1 needle driver"
+];
+
+const PLAYBACK_HELP = [
+  ['Space', 'play / pause'],
+  [', .', 'back / forward 1 frame'],
+  ['← →', 'back / forward 5 s'],
+  ['[ ]', 'slower / faster'],
+  ['Esc', 'cancel open events'],
+];
+
+const video = document.getElementById('video');
+const fpsInput = document.getElementById('fps');
+const state = { videoName: '', events: [], openSpans: {} };
+
+// ---------- time helpers ----------
+
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const rest = (seconds % 60).toFixed(2).padStart(5, '0');
+  return `${minutes}:${rest}`;
+}
+
+function seekBy(seconds) {
+  video.currentTime = Math.max(0, video.currentTime + seconds);
+}
+
+function changeSpeed(factor) {
+  video.playbackRate = Math.min(8, Math.max(0.125, video.playbackRate * factor));
+  renderStatus();
+}
+
+function togglePlay() {
+  const action = video.paused ? 'play' : 'pause';
+  video[action]();
+}
+
+// ---------- marking events ----------
+
+function markEvent(type) {
+  const now = video.currentTime;
+  const handlers = { point: () => addEvent(type.name, now, now), span: () => toggleSpan(type.name, now) };
+  handlers[type.kind]();
+}
+
+function toggleSpan(name, now) {
+  const start = state.openSpans[name];
+  if (start === undefined) {
+    state.openSpans[name] = now;
+    render();
+    return;
+  }
+  delete state.openSpans[name];
+  addEvent(name, start, now);
+}
+
+function addEvent(name, start, end) {
+  state.events.push({ event: name, start: Math.min(start, end), end: Math.max(start, end), note: '' });
+  state.events.sort((a, b) => a.start - b.start);
+  save();
+  render();
+}
+
+function deleteEvent(index) {
+  state.events.splice(index, 1);
+  save();
+  render();
+}
+
+function cancelOpenSpans() {
+  state.openSpans = {};
+  render();
+}
+
+// ---------- keyboard ----------
+
+const ACTIONS = {
+  ' ': togglePlay,
+  ',': () => seekBy(-1 / Number(fpsInput.value)),
+  '.': () => seekBy(1 / Number(fpsInput.value)),
+  'ArrowLeft': () => seekBy(-5),
+  'ArrowRight': () => seekBy(5),
+  '[': () => changeSpeed(0.5),
+  ']': () => changeSpeed(2),
+  'Escape': cancelOpenSpans,
+};
+EVENT_TYPES.forEach(type => { ACTIONS[type.key] = () => markEvent(type); });
+
+function onKeyDown(e) {
+  const isTyping = e.target.matches('input[type=text], input[type=number]');
+  const action = ACTIONS[e.key];
+  if (isTyping || !action) return;
+  e.preventDefault();
+  document.activeElement.blur();
+  action();
+}
+
+// ---------- rendering ----------
+
+function render() {
+  renderStatus();
+  renderOpenSpans();
+  document.getElementById('eventRows').replaceChildren(...state.events.map(makeRow));
+  drawTimelines();
+}
+
+function renderStatus() {
+  const text = `${formatTime(video.currentTime)}  /  ${formatTime(video.duration || 0)}   speed ${video.playbackRate}x`;
+  document.getElementById('status').textContent = text;
+}
+
+function renderOpenSpans() {
+  const parts = Object.entries(state.openSpans).map(([name, start]) => `${name} since ${formatTime(start)}`);
+  document.getElementById('openSpans').textContent = parts.join(', ') || 'none';
+}
+
+function makeCell(text) {
+  const cell = document.createElement('td');
+  cell.textContent = text;
+  return cell;
+}
+
+function makeSeekCell(seconds) {
+  const cell = makeCell(formatTime(seconds));
+  cell.className = 'seek';
+  cell.onclick = () => { video.currentTime = seconds; };
+  return cell;
+}
+
+function makeNoteCell(ev) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = ev.note;
+  input.onchange = () => { ev.note = input.value; save(); };
+  const cell = document.createElement('td');
+  cell.append(input);
+  return cell;
+}
+
+function makeDeleteCell(index) {
+  const button = document.createElement('button');
+  button.textContent = '✕';
+  button.onclick = () => deleteEvent(index);
+  const cell = document.createElement('td');
+  cell.append(button);
+  return cell;
+}
+
+// "stitch 3 · muscle": stitches are numbered within the layer block that contains their start.
+function layerOf(ev) {
+  const layer = state.events.find(l => l.event.startsWith('layer_') && l.start <= ev.start && ev.start <= l.end);
+  return layer ? layer.event.replace('layer_', '') : 'no layer';
+}
+
+function eventLabel(ev) {
+  if (ev.event !== 'stitch') return ev.event;
+  const layer = layerOf(ev);
+  const number = state.events.filter(e => e.event === 'stitch' && layerOf(e) === layer && e.start <= ev.start).length;
+  return `stitch ${number} · ${layer}`;
+}
+
+// ---------- checks (shown in the Check column) ----------
+
+function eventsOf(name) {
+  return state.events.filter(e => e.event === name);
+}
+
+function stitchContaining(t) {
+  return eventsOf('stitch').find(s => s.start <= t && t <= s.end);
+}
+
+// The stitch a cut belongs to: the last stitch that ended before it, if no new stitch started in between.
+function stitchBeforeCut(cut) {
+  const ended = eventsOf('stitch').filter(s => s.end <= cut.start);
+  const last = ended[ended.length - 1];
+  const restarted = last && eventsOf('stitch').some(s => s.start > last.end && s.start < cut.start);
+  return restarted ? undefined : last;
+}
+
+function stitchProblems(ev) {
+  const problems = [];
+  const needles = eventsOf('needle_through').filter(n => ev.start <= n.start && n.start <= ev.end);
+  if (needles.length === 0) problems.push('no needle_through');
+  if (needles.length > 1) problems.push(`${needles.length} needle_through`);
+  if (layerOf(ev) === 'no layer') problems.push('not inside a layer');
+  if (!eventsOf('cut').some(c => stitchBeforeCut(c) === ev)) problems.push('no cut (ok if not visible)');
+  return problems;
+}
+
+const CHECKS = {
+  stitch: stitchProblems,
+  needle_through: ev => stitchContaining(ev.start) ? [] : ['not inside a stitch'],
+  cut: ev => stitchBeforeCut(ev) ? [] : ['no stitch ended before it'],
+};
+
+function problemsFor(ev) {
+  return (CHECKS[ev.event] || (() => []))(ev);
+}
+
+function makeCheckCell(ev) {
+  const problems = problemsFor(ev);
+  const cell = makeCell(problems.length ? '⚠ ' + problems.join('; ') : '');
+  cell.style.color = '#b50';
+  return cell;
+}
+
+function makeRow(ev, index) {
+  const row = document.createElement('tr');
+  row.append(
+    makeCell(eventLabel(ev)),
+    makeSeekCell(ev.start),
+    makeSeekCell(ev.end),
+    makeCell((ev.end - ev.start).toFixed(2)),
+    makeNoteCell(ev),
+    makeCheckCell(ev),
+    makeDeleteCell(index),
+  );
+  return row;
+}
+
+function renderLegend() {
+  const eventRows = EVENT_TYPES.map(t => [t.key, `${t.name} (${t.kind})`]);
+  const rows = [...PLAYBACK_HELP, ...eventRows].map(([key, label]) => {
+    const row = document.createElement('tr');
+    row.append(makeCell(key), makeCell(label));
+    return row;
+  });
+  document.getElementById('legend').replaceChildren(...rows);
+}
+
+// ---------- saving (browser autosave, per video file name) ----------
+
+// Practice mode (open the page with ?practice): nothing is saved or loaded, so test marks never mix with real ones.
+const PRACTICE = new URLSearchParams(location.search).has('practice');
+
+function storageKey() {
+  return 'annotator:' + state.videoName;
+}
+
+function save() {
+  if (PRACTICE) return;
+  try { localStorage.setItem(storageKey(), JSON.stringify(state.events)); } catch (e) { /* storage unavailable */ }
+}
+
+function load() {
+  if (PRACTICE) return [];
+  try { return (JSON.parse(localStorage.getItem(storageKey())) || []).filter(isValidEvent); } catch (e) { return []; }
+}
+
+function isValidEvent(ev) {
+  return Boolean(ev && ev.event) && Number.isFinite(ev.start) && Number.isFinite(ev.end);
+}
+
+// ---------- CSV ----------
+
+const CSV_HEADER = 'video,event,start_s,end_s,duration_s,note';
+
+function quote(text) {
+  return '"' + text.replaceAll('"', '""') + '"';
+}
+
+function eventToCsvLine(ev) {
+  const numbers = [ev.start, ev.end, ev.end - ev.start].map(n => n.toFixed(3));
+  return [state.videoName, ev.event, ...numbers, quote(ev.note)].join(',');
+}
+
+// Split one CSV line into fields. Handles "quoted, fields" and "" inside quotes.
+function parseCsvLine(line) {
+  const fields = line.match(/("([^"]|"")*"|[^,]*)(,|$)/g).slice(0, -1);
+  return fields.map(f => f.replace(/,$/, '').replace(/^"|"$/g, '').replaceAll('""', '"'));
+}
+
+// Columns are found by header name, so their order does not matter.
+function csvRowToEvent(row, column) {
+  return {
+    event: row[column.event],
+    start: Number(row[column.start_s]),
+    end: Number(row[column.end_s]),
+    note: row[column.note] || '',
+  };
+}
+
+function csvTextToEvents(text) {
+  const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(line => line.trim());
+  const header = parseCsvLine(lines[0]);
+  const column = Object.fromEntries(header.map((name, i) => [name.trim(), i]));
+  return lines.slice(1).map(line => csvRowToEvent(parseCsvLine(line), column));
+}
+
+function exportCsv() {
+  const text = [CSV_HEADER, ...state.events.map(eventToCsvLine)].join('\n') + '\n';
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+  link.download = state.videoName.replace(/\.[^.]+$/, '') + '_events.csv';
+  link.click();
+}
+
+function eventKey(ev) {
+  return `${ev.event}|${ev.start.toFixed(3)}|${ev.end.toFixed(3)}`;
+}
+
+// Import adds to the current events (it never deletes); exact duplicates are skipped.
+const REQUIRED_COLUMNS = ['event', 'start_s', 'end_s'];
+
+function missingColumns(text) {
+  const header = parseCsvLine(text.replace(/^﻿/, '').split(/\r?\n/)[0]).map(name => name.trim());
+  return REQUIRED_COLUMNS.filter(name => !header.includes(name));
+}
+
+async function importCsv(file) {
+  const text = await file.text();
+  const missing = missingColumns(text);
+  if (missing.length) {
+    alert(`${file.name} is not an annotator CSV (missing columns: ${missing.join(', ')}).\n`
+        + 'Tool events are in results/tools/<video>_tools.csv.');
+    return;
+  }
+  const rows = csvTextToEvents(text);
+  const valid = rows.filter(isValidEvent);
+  const known = new Set(state.events.map(eventKey));
+  const added = valid.filter(ev => !known.has(eventKey(ev)));
+  state.events = [...state.events, ...added].sort((a, b) => a.start - b.start);
+  save();
+  render();
+  alert(`Imported ${added.length} events. Skipped ${rows.length - valid.length} rows without valid times, `
+      + `${valid.length - added.length} duplicates.`);
+}
+
+// ---------- timeline (results/timeline/<video>.json from scripts/timeline.py) ----------
+
+const LABEL_WIDTH = 90;
+const ROW_HEIGHT = 18;
+const ZOOM_SECONDS = 600;
+const BAND_COLORS = ['#cde', '#edc', '#dec', '#ecd', '#cee', '#eec'];
+const timeline = { data: null, scales: [] };
+
+function percentile99(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(0.99 * (sorted.length - 1))] || 1;
+}
+
+async function loadTimeline(file) {
+  timeline.data = JSON.parse(await file.text());
+  timeline.scales = timeline.data.tracks.map(t => percentile99(t.values));
+  document.getElementById('timeline').hidden = false;
+  if (state.videoName && timeline.data.video !== state.videoName) {
+    alert(`Timeline is for ${timeline.data.video}, but the open video is ${state.videoName}.`);
+  }
+  drawTimelines();
+}
+
+function bandRows() {
+  return [...new Set(timeline.data.bands.map(b => b.track))];
+}
+
+function drawTrack(ctx, track, scale, y, toX, t0, t1) {
+  ctx.fillStyle = '#58a';
+  const width = Math.max(1, toX(t0 + 1) - toX(t0));
+  for (let t = Math.max(0, Math.floor(t0)); t < Math.min(t1, track.values.length); t++) {
+    const height = Math.min(1, track.values[t] / scale) * (ROW_HEIGHT - 2);
+    ctx.fillRect(toX(t), y + ROW_HEIGHT - 1 - height, width, height);
+  }
+}
+
+function drawBands(ctx, row, y, toX) {
+  timeline.data.bands.filter(b => b.track === row).forEach((band, i) => {
+    ctx.fillStyle = BAND_COLORS[i % BAND_COLORS.length];
+    ctx.fillRect(toX(band.start), y + 1, toX(band.end) - toX(band.start), ROW_HEIGHT - 2);
+    ctx.fillStyle = '#333';
+    ctx.fillText(band.label, Math.max(LABEL_WIDTH, toX(band.start)) + 2, y + 13);
+  });
+}
+
+function drawAnnotations(ctx, y, toX) {
+  state.events.forEach(ev => {
+    const isLayer = ev.event.startsWith('layer_');
+    ctx.fillStyle = isLayer ? 'rgba(250, 160, 0, 0.3)' : 'rgba(200, 40, 40, 0.8)';
+    const top = isLayer ? y + 1 : y + 5;
+    ctx.fillRect(toX(ev.start), top, Math.max(2, toX(ev.end) - toX(ev.start)), ROW_HEIGHT - (top - y) - 1);
+  });
+}
+
+function drawRowLabel(ctx, text, y) {
+  ctx.fillStyle = '#333';
+  ctx.fillText(text, 4, y + 13);
+  ctx.strokeStyle = '#eee';
+  ctx.beginPath(); ctx.moveTo(0, y + ROW_HEIGHT); ctx.lineTo(ctx.canvas.width, y + ROW_HEIGHT); ctx.stroke();
+}
+
+function drawTimeline(canvas, t0, t1) {
+  const tracks = timeline.data.tracks;
+  const rows = [...tracks.map(t => t.name), ...bandRows(), 'annotations'];
+  canvas.width = canvas.clientWidth;
+  canvas.height = rows.length * ROW_HEIGHT;
+  const ctx = canvas.getContext('2d');
+  ctx.font = '11px system-ui';
+  const toX = t => LABEL_WIDTH + (t - t0) / (t1 - t0) * (canvas.width - LABEL_WIDTH);
+  rows.forEach((name, i) => drawRowLabel(ctx, name, i * ROW_HEIGHT));
+  tracks.forEach((track, i) => drawTrack(ctx, track, timeline.scales[i], i * ROW_HEIGHT, toX, t0, t1));
+  bandRows().forEach((row, i) => drawBands(ctx, row, (tracks.length + i) * ROW_HEIGHT, toX));
+  drawAnnotations(ctx, (rows.length - 1) * ROW_HEIGHT, toX);
+  ctx.fillStyle = 'red';
+  ctx.fillRect(toX(video.currentTime) - 1, 0, 2, canvas.height);
+  canvas.dataset.t0 = t0;
+  canvas.dataset.t1 = t1;
+}
+
+function drawTimelines() {
+  if (!timeline.data) return;
+  const length = timeline.data.tracks[0].values.length;
+  const now = video.currentTime;
+  drawTimeline(document.getElementById('overview'), 0, length);
+  drawTimeline(document.getElementById('zoom'), now - ZOOM_SECONDS / 2, now + ZOOM_SECONDS / 2);
+}
+
+function seekFromTimeline(e) {
+  const canvas = e.currentTarget;
+  const box = canvas.getBoundingClientRect();
+  const x = (e.clientX - box.left) * canvas.width / box.width;
+  if (x < LABEL_WIDTH || !timeline.data) return;
+  const t0 = Number(canvas.dataset.t0), t1 = Number(canvas.dataset.t1);
+  video.currentTime = Math.max(0, t0 + (x - LABEL_WIDTH) / (canvas.width - LABEL_WIDTH) * (t1 - t0));
+}
+
+// ---------- file loading ----------
+
+function openVideo(file) {
+  video.src = URL.createObjectURL(file);
+  state.videoName = file.name;
+  state.events = load();
+  state.openSpans = {};
+  render();
+}
+
+document.getElementById('videoFile').onchange = e => openVideo(e.target.files[0]);
+if (PRACTICE) {
+  const banner = document.createElement('div');
+  banner.textContent = 'PRACTICE MODE: nothing is saved. Marks are lost when the page is closed or reloaded.';
+  banner.style.cssText = 'background: #fd6; padding: 6px 10px; margin-bottom: 8px; font-weight: 600;';
+  document.body.prepend(banner);
+}
+document.getElementById('csvFile').onchange = e => importCsv(e.target.files[0]);
+document.getElementById('timelineFile').onchange = e => loadTimeline(e.target.files[0]);
+document.getElementById('overview').onclick = seekFromTimeline;
+document.getElementById('zoom').onclick = seekFromTimeline;
+video.addEventListener('timeupdate', drawTimelines);
+video.addEventListener('seeked', drawTimelines);
+window.addEventListener('resize', drawTimelines);
+document.getElementById('exportButton').onclick = exportCsv;
+document.addEventListener('keydown', onKeyDown);
+video.addEventListener('timeupdate', renderStatus);
+video.addEventListener('seeked', renderStatus);
+renderLegend();
+render();
+</script>
+</body>
+</html>
