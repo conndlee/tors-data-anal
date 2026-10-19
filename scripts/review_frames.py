@@ -30,7 +30,8 @@ OUT_DIR = Path("results/review")
 SYNC_FILE = Path("results/sync/offsets.csv")
 OFFSETS = [-40, -15, 0, 15, 40, 80]  # s around the candidate
 LEFT_EYE = "crop=960:1040:0:40"
-FRAME_WIDTH = 320
+FRAME_WIDTH = 960  # full left-eye width, so frames stay sharp when enlarged
+SHEET_WIDTH = 320  # contact-sheet tiles stay small
 SHEET_STEP = 20  # s
 SHEET_TILE = "6x6"
 
@@ -38,13 +39,17 @@ SHEET_TILE = "6x6"
 def save_frame(video, t, path):
     filters = f"{LEFT_EYE},scale={FRAME_WIDTH}:-1"
     command = ["ffmpeg", "-v", "error", "-y", "-ss", str(max(t, 0)), "-i", str(video),
-               "-frames:v", "1", "-vf", filters, "-q:v", "4", str(path)]
+               "-frames:v", "1", "-vf", filters, "-q:v", "3", str(path)]
     subprocess.run(command, check=True)
 
 
 def save_sheets(video):
+    """Contact sheets need a full pass through the video, so existing ones are kept."""
+    existing = sorted(p.name for p in (OUT_DIR / "sheets").glob(f"{video.stem}_*.jpg"))
+    if existing:
+        return existing
     label = "drawtext=text='%{pts\\:hms}':fontcolor=yellow:fontsize=22:x=4:y=4:box=1:boxcolor=black@0.5"
-    filters = f"fps=1/{SHEET_STEP},{LEFT_EYE},scale={FRAME_WIDTH}:-1,{label},tile={SHEET_TILE}"
+    filters = f"fps=1/{SHEET_STEP},{LEFT_EYE},scale={SHEET_WIDTH}:-1,{label},tile={SHEET_TILE}"
     out = OUT_DIR / "sheets" / f"{video.stem}_%02d.jpg"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(video), "-vf", filters, "-q:v", "4", str(out)], check=True)
     return sorted(p.name for p in (OUT_DIR / "sheets").glob(f"{video.stem}_*.jpg"))

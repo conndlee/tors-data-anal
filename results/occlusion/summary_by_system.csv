@@ -1,0 +1,5 @@
+trials,system,segments,median,min,max,median_in_view,min_in_view,max_in_view
+main trials,3mm,3,0.1039,0.1025,0.1131,0.1071,0.106,0.1165
+main trials,8mm,4,0.2393,0.2286,0.265,0.2442,0.2364,0.2703
+main + pilots,3mm,4,0.1085,0.1025,0.123,0.1118,0.106,0.1302
+main + pilots,8mm,5,0.2403,0.2286,0.3519,0.2462,0.2364,0.3519

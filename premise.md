@@ -60,7 +60,7 @@ Use the best option the data allows:
 
 - Start: needle first touches tissue.
 - End: knot is tightened or suture is cut.
-- Report each suture layer (nasal, muscle, oral) separately.
+- All stitches are simple interrupted. Time the muscle repair, hard palate suturing and soft palate suturing separately.
 
 ## Other measures
 
@@ -91,8 +91,8 @@ can we make a gui/webapp to scroll through video and mark start and ends of sutu
 - How many surgeons, trials, and pigs?
     1 surgeon, 8 pigs (4 for each tool size)
     The two May 3 mm trials were pilots, used to work out the process.
-    So the comparison is 2 pigs (3 mm, June) vs 4 pigs (8 mm).
-    Report the May trials separately, for feasibility only.
+    May 29 is included in the 3 mm comparison (decided 2026-10-19), so it is 3 pigs (3 mm) vs 4 pigs (8 mm).
+    May 28 stays a pilot: it mixed 8 mm and 3 mm tools, and its recording ends in black.
     Trial order (May, June, then Aug/Oct) favours 8 mm, since the surgeon had more practice by then.
 - Which rosbag topics exist for each system?
 - Is joint effort or force logged for both systems?

@@ -26,6 +26,7 @@
 <header>
   <label>Video <input type="file" id="videoFile" accept="video/*"></label>
   <label>FPS <input type="number" id="fps" value="30" min="1" style="width: 5em"></label>
+  <label>Skip (s) <input type="number" id="skip" value="5" min="0.1" step="0.5" style="width: 4em"></label>
   <label>Import CSV <input type="file" id="csvFile" accept=".csv"></label>
   <label>Timeline <input type="file" id="timelineFile" accept=".json"></label>
   <button id="exportButton">Export CSV</button>
@@ -62,9 +63,9 @@
 // "span" events: press once to start, press again to end.
 // "point" events: press once to mark a single moment.
 const EVENT_TYPES = [
-  { key: '1', name: 'layer_nasal',   kind: 'span' },  // one block around all stitches of the layer
-  { key: '2', name: 'layer_muscle',  kind: 'span' },
-  { key: '3', name: 'layer_oral',    kind: 'span' },
+  { key: '1', name: 'muscle_repair', kind: 'span' },  // blocks: one around each part of the repair
+  { key: '2', name: 'soft_palate',   kind: 'span' },
+  { key: '3', name: 'hard_palate',   kind: 'span' },
   { key: 'x', name: 'stitch',        kind: 'span' },  // needle first touches tissue -> last throw of the knot tightened
   { key: '4', name: 'dissection',    kind: 'span' },
   { key: '5', name: 'incision',      kind: 'span' },
@@ -80,13 +81,20 @@ const EVENT_TYPES = [
 const PLAYBACK_HELP = [
   ['Space', 'play / pause'],
   [', .', 'back / forward 1 frame'],
-  ['← →', 'back / forward 5 s'],
+  ['← →', 'back / forward by Skip (s)'],
   ['[ ]', 'slower / faster'],
   ['Esc', 'cancel open events'],
 ];
 
 const video = document.getElementById('video');
 const fpsInput = document.getElementById('fps');
+const skipInput = document.getElementById('skip');
+
+// The skip length is remembered in this browser (a convenience; falls back to the default).
+try { skipInput.value = localStorage.getItem('annotator_skip') || skipInput.value; } catch (e) { /* storage unavailable */ }
+skipInput.onchange = () => {
+  try { localStorage.setItem('annotator_skip', skipInput.value); } catch (e) { /* storage unavailable */ }
+};
 const state = { videoName: '', events: [], openSpans: {} };
 
 // ---------- time helpers ----------
@@ -154,8 +162,8 @@ const ACTIONS = {
   ' ': togglePlay,
   ',': () => seekBy(-1 / Number(fpsInput.value)),
   '.': () => seekBy(1 / Number(fpsInput.value)),
-  'ArrowLeft': () => seekBy(-5),
-  'ArrowRight': () => seekBy(5),
+  'ArrowLeft': () => seekBy(-Number(skipInput.value)),
+  'ArrowRight': () => seekBy(Number(skipInput.value)),
   '[': () => changeSpeed(0.5),
   ']': () => changeSpeed(2),
   'Escape': cancelOpenSpans,
@@ -222,17 +230,29 @@ function makeDeleteCell(index) {
   return cell;
 }
 
-// "stitch 3 · muscle": stitches are numbered within the layer block that contains their start.
-function layerOf(ev) {
-  const layer = state.events.find(l => l.event.startsWith('layer_') && l.start <= ev.start && ev.start <= l.end);
-  return layer ? layer.event.replace('layer_', '') : 'no layer';
+// Suturing blocks: muscle_repair, hard_palate, soft_palate.
+// Older annotations used 'suturing' or one block per layer (layer_nasal etc.); those count too.
+const BLOCK_NAMES = ['muscle_repair', 'hard_palate', 'soft_palate', 'suturing'];
+
+function isSuturingBlock(ev) {
+  return BLOCK_NAMES.includes(ev.event) || ev.event.startsWith('layer_');
 }
 
+function blockOf(ev) {
+  const block = state.events.find(b => isSuturingBlock(b) && b.start <= ev.start && ev.start <= b.end);
+  return block ? block.event : 'no block';
+}
+
+function insideSuturingBlock(ev) {
+  return blockOf(ev) !== 'no block';
+}
+
+// "stitch 2 · hard_palate": stitches are numbered within the block that contains their start.
 function eventLabel(ev) {
   if (ev.event !== 'stitch') return ev.event;
-  const layer = layerOf(ev);
-  const number = state.events.filter(e => e.event === 'stitch' && layerOf(e) === layer && e.start <= ev.start).length;
-  return `stitch ${number} · ${layer}`;
+  const block = blockOf(ev);
+  const number = state.events.filter(e => e.event === 'stitch' && blockOf(e) === block && e.start <= ev.start).length;
+  return `stitch ${number} · ${block}`;
 }
 
 // ---------- checks (shown in the Check column) ----------
@@ -245,12 +265,12 @@ function stitchContaining(t) {
   return eventsOf('stitch').find(s => s.start <= t && t <= s.end);
 }
 
-// The stitch a cut belongs to: the last stitch that ended before it, if no new stitch started in between.
+// The stitch a cut belongs to: the stitch that most recently ENDED before it.
+// A next stitch may already have started (the assistant cuts while the surgeon starts the next bite);
+// it has not ended yet, so it cannot be the one being cut.
 function stitchBeforeCut(cut) {
   const ended = eventsOf('stitch').filter(s => s.end <= cut.start);
-  const last = ended[ended.length - 1];
-  const restarted = last && eventsOf('stitch').some(s => s.start > last.end && s.start < cut.start);
-  return restarted ? undefined : last;
+  return ended.reduce((latest, s) => (!latest || s.end > latest.end ? s : latest), undefined);
 }
 
 function stitchProblems(ev) {
@@ -258,8 +278,10 @@ function stitchProblems(ev) {
   const needles = eventsOf('needle_through').filter(n => ev.start <= n.start && n.start <= ev.end);
   if (needles.length === 0) problems.push('no needle_through');
   if (needles.length > 1) problems.push(`${needles.length} needle_through`);
-  if (layerOf(ev) === 'no layer') problems.push('not inside a layer');
-  if (!eventsOf('cut').some(c => stitchBeforeCut(c) === ev)) problems.push('no cut (ok if not visible)');
+  if (!insideSuturingBlock(ev)) problems.push('not inside a suturing block');
+  const cuts = eventsOf('cut').filter(c => stitchBeforeCut(c) === ev).length;
+  if (cuts === 0) problems.push('no cut (ok if not visible)');
+  if (cuts > 1) problems.push(`${cuts} cuts`);
   return problems;
 }
 
@@ -449,9 +471,9 @@ function drawBands(ctx, row, y, toX) {
 
 function drawAnnotations(ctx, y, toX) {
   state.events.forEach(ev => {
-    const isLayer = ev.event.startsWith('layer_');
-    ctx.fillStyle = isLayer ? 'rgba(250, 160, 0, 0.3)' : 'rgba(200, 40, 40, 0.8)';
-    const top = isLayer ? y + 1 : y + 5;
+    const isBlock = isSuturingBlock(ev);
+    ctx.fillStyle = isBlock ? 'rgba(250, 160, 0, 0.3)' : 'rgba(200, 40, 40, 0.8)';
+    const top = isBlock ? y + 1 : y + 5;
     ctx.fillRect(toX(ev.start), top, Math.max(2, toX(ev.end) - toX(ev.start)), ROW_HEIGHT - (top - y) - 1);
   });
 }

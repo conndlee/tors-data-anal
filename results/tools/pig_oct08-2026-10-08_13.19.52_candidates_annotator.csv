@@ -1,0 +1,9 @@
+video,event,start_s,end_s,duration_s,note
+pig_oct08-2026-10-08_13.19.52.mp4,tool_check,7.6,7.6,0.0,"psm1 candidate, score 2: retraction"
+pig_oct08-2026-10-08_13.19.52.mp4,tool_check,7.6,7.6,0.0,"psm2 candidate, score 2: retraction"
+pig_oct08-2026-10-08_13.19.52.mp4,tool_check,152.0,152.0,0.0,"psm1 candidate, score 2: retraction"
+pig_oct08-2026-10-08_13.19.52.mp4,tool_check,284.8,284.8,0.0,"psm1 candidate, score 2: jump"
+pig_oct08-2026-10-08_13.19.52.mp4,tool_check,503.9,503.9,0.0,"psm2 candidate, score 5: jump + retraction"
+pig_oct08-2026-10-08_13.19.52.mp4,tool_check,514.5,514.5,0.0,"psm1 candidate, score 8: freeze_jump + jump + retraction"
+pig_oct08-2026-10-08_13.19.52.mp4,tool_check,842.9,842.9,0.0,"psm2 candidate, score 10: freeze_jump + jump + retraction"
+pig_oct08-2026-10-08_13.19.52.mp4,tool_check,2567.2,2567.2,0.0,"psm1 candidate, score 10: freeze_jump + jump + retraction"

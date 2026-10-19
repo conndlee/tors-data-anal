@@ -1,0 +1,10 @@
+video,event,start_s,end_s,duration_s,note
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,7.5,7.5,0.0,"psm2 candidate, score 2: retraction"
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,489.7,489.7,0.0,"psm2 candidate, score 2: retraction"
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,1464.2,1464.2,0.0,"psm2 candidate, score 3: jump + retraction"
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,1472.0,1472.0,0.0,"psm1 candidate, score 5: freeze_jump + jump + retraction"
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,1630.7,1630.7,0.0,"psm2 candidate, score 3: freeze_jump + jump"
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,1637.3,1637.3,0.0,"psm1 candidate, score 8: freeze_jump + jump"
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,2078.4,2078.4,0.0,"psm2 candidate, score 10: freeze_jump + jump + retraction"
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,2084.2,2084.2,0.0,"psm1 candidate, score 8: freeze_jump + jump + retraction"
+pig_aug19-2026-08-19_12.09.17.mp4,tool_check,2277.3,2277.3,0.0,"psm2 candidate, score 5: freeze_jump + jump"

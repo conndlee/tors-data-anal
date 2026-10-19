@@ -7,6 +7,8 @@ Tracks (one value per second of video):
     psm1 grasps, psm2 grasps   jaw closures in the last GRASP_WINDOW seconds
     psm1 roll, psm2 roll       wrist roll speed (rad/s), smoothed; needle passes are big roll motions
     occlusion                  share of the image covered by instruments (scripts/occlusion.py), if run
+    image motion               frame-to-frame change in the video (scripts/video_motion.py), if run
+Videos without a rosbag (the May pilots) get only the video tracks.
 Bands (8 mm only): which tool was mounted on each arm, from the tool log.
 
 Output: results/timeline/<video>.json
@@ -25,6 +27,7 @@ from shaft_metrics import JAW_CLOSED_RAD, JAW_OPEN_RAD
 SYNC_FILE = Path("results/sync/offsets.csv")
 VIDEO_DIR = Path("data/video")
 OCCLUSION_DIR = Path("data/derived/occlusion/video")
+MOTION_DIR = Path("data/derived/video")
 OUT_DIR = Path("results/timeline")
 ARMS = ["psm1", "psm2"]
 GRASP_WINDOW = 10  # s
@@ -65,6 +68,23 @@ def occlusion_track(video, length):
     return per_second(d.t_video.to_numpy(), d.occlusion.to_numpy(), length, "mean")
 
 
+def motion_track(video, length):
+    path = MOTION_DIR / f"{video}.parquet"
+    if not path.exists():
+        return None
+    d = pd.read_parquet(path)
+    return per_second(d.t.to_numpy(), d.motion.to_numpy(), length, "mean")
+
+
+def video_tracks(video, length):
+    """Tracks that need only the video: occlusion and image motion."""
+    tracks = []
+    for name, values in [("occlusion", occlusion_track(video, length)), ("image motion", motion_track(video, length))]:
+        if values is not None:
+            tracks.append({"name": name, "values": rounded(values)})
+    return tracks
+
+
 def tool_bands(bag, offset):
     """(arm, start, end, tool) in video time, from the 8 mm tool log; empty for 3 mm."""
     path = DERIVED_DIR / bag / "tool_events.csv"
@@ -90,19 +110,30 @@ def video_timeline(row):
     for arm in ARMS:
         tracks.append({"name": f"{arm} grasps", "values": rounded(grasp_track(row.bag, arm, row.offset, length))})
         tracks.append({"name": f"{arm} roll", "values": rounded(roll_track(row.bag, arm, row.offset, length))})
-    occlusion = occlusion_track(row.video, length)
-    if occlusion is not None:
-        tracks.append({"name": "occlusion", "values": rounded(occlusion)})
+    tracks += video_tracks(row.video, length)
     return {"video": f"{row.video}.mp4", "step": 1, "tracks": tracks, "bands": tool_bands(row.bag, row.offset)}
+
+
+def video_only_timeline(video):
+    tracks = video_tracks(video, video_seconds(video))
+    return {"video": f"{video}.mp4", "step": 1, "tracks": tracks, "bands": []}
+
+
+def save(timeline):
+    name = timeline["video"].replace(".mp4", "")
+    (OUT_DIR / f"{name}.json").write_text(json.dumps(timeline))
+    names = ", ".join(t["name"] for t in timeline["tracks"])
+    print(f"{name}: {names}; {len(timeline['bands'])} tool bands", flush=True)
 
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    for row in pd.read_csv(SYNC_FILE).itertuples():
-        timeline = video_timeline(row)
-        (OUT_DIR / f"{row.video}.json").write_text(json.dumps(timeline))
-        names = ", ".join(t["name"] for t in timeline["tracks"])
-        print(f"{row.video}: {names}; {len(timeline['bands'])} tool bands", flush=True)
+    sync = pd.read_csv(SYNC_FILE)
+    for row in sync.itertuples():
+        save(video_timeline(row))
+    for video in sorted(p.stem for p in VIDEO_DIR.glob("*.mp4")):
+        if video not in set(sync.video):
+            save(video_only_timeline(video))
 
 
 if __name__ == "__main__":

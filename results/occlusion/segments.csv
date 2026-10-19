@@ -1,0 +1,10 @@
+video,start_s,end_s,system,trial,note
+pig_may28-2026-05-28_10.17.17,0,750,8mm,pilot,8 mm tools at the start; swap at about 12:30 (checked by eye)
+pig_may28-2026-05-28_10.17.17,750,,3mm,pilot,3 mm after the swap; black after about 47 min is dropped by brightness
+pig_may29-2026-05-29_09.34.18,0,,3mm,main,included in the 3 mm comparison (decided 2026-10-19)
+pig_jun15-2026-06-15_10.14.18,0,,3mm,main,
+pig_jun16-2026-06-16_09.57.53,0,,3mm,main,
+pig_aug18-2026-08-18_10.10.14,0,,8mm,main,
+pig_aug19-2026-08-19_12.09.17,0,,8mm,main,
+pig_oct07-2026-10-07_14.31.12,0,,8mm,main,
+pig_oct08-2026-10-08_13.19.52,0,,8mm,main,

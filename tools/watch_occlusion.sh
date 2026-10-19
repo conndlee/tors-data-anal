@@ -10,8 +10,9 @@ CHECK_DIR=results/occlusion/check
 DONE_DIR=data/derived/occlusion/video
 
 expected=0
-for video in $(python3 -c "import csv; print(' '.join(r['video'] for r in csv.DictReader(open('results/sync/offsets.csv'))))"); do
-  duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "data/video/$video.mp4")
+videos=(data/video/*.mp4)
+for video in "${videos[@]}"; do
+  duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$video")
   expected=$((expected + ${duration%.*} / CHECK_EVERY + 1))
 done
 
@@ -21,7 +22,7 @@ while true; do
   percent=$((100 * done_images / expected))
   filled=$((percent / 2))
   bar=$(printf '%*s' "$filled" '' | tr ' ' '#')$(printf '%*s' "$((50 - filled))" '' | tr ' ' '.')
-  printf '\r[%s] %3d%%   videos done: %d / 6 ' "$bar" "$percent" "$done_videos"
+  printf '\r[%s] %3d%%   videos done: %d / %d ' "$bar" "$percent" "$done_videos" "${#videos[@]}"
   if ! pgrep -f "python -u scripts/occlusion.py" > /dev/null; then
     printf '\nocclusion.py is not running (finished or stopped).\n'
     break
