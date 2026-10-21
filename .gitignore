@@ -228,3 +228,6 @@ results/review/sheets/
 
 # Regenerable occlusion check overlays (scripts/occlusion.py)
 results/occlusion/check/
+
+# Regenerable knot-tying clips (scripts/knot_clips.py)
+results/sutures/knot_clips/*.mp4
