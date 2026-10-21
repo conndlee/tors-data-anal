@@ -22,15 +22,15 @@ import numpy as np
 import pandas as pd
 
 from bagio import DERIVED_DIR
-from shaft_metrics import JAW_CLOSED_RAD, JAW_OPEN_RAD
+from project import SYNC_FILE, VIDEO_DIR
 
-SYNC_FILE = Path("results/sync/offsets.csv")
-VIDEO_DIR = Path("data/video")
 OCCLUSION_DIR = Path("data/derived/occlusion/video")
 MOTION_DIR = Path("data/derived/video")
 OUT_DIR = Path("results/timeline")
 ARMS = ["psm1", "psm2"]
 GRASP_WINDOW = 10  # s
+JAW_CLOSED_RAD = 0.1  # jaw angle below this counts as closed
+JAW_OPEN_RAD = 0.3  # above this counts as open (the dead band ignores jitter)
 ROLL_SMOOTH = 5  # s
 
 

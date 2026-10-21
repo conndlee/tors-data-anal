@@ -29,12 +29,12 @@ from scipy.stats import gaussian_kde
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+from project import GRID, LEFT_EYE, MUTED, TEXT, VIDEO_DIR  # noqa: E402
 from train_tool_seg import MODEL_FILE, SIZE, make_model, normalise  # noqa: E402
 
 OCCLUSION_DIR = Path("data/derived/occlusion/video")
 RESULT_DIR = Path("results/occlusion")
 FIGURE_DIR = RESULT_DIR / "figures"
-VIDEO_DIR = Path("data/video")
 DARK = 20
 IN_VIEW = 1  # % of the image
 SMOOTHING = 1.5  # points of occlusion; kernel width of the smoothed distribution
@@ -43,7 +43,6 @@ SMOOTHING = 1.5  # points of occlusion; kernel width of the smoothed distributio
 COLORS = {"3mm": "#842996", "8mm": "#2a9d8f"}
 COLOR_NAMES = {"3mm": "purple", "8mm": "teal"}
 NAMES = {"3mm": "3 mm", "8mm": "8 mm"}
-TEXT, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 EXAMPLES = [  # (system, video, time in s, how it was picked, output file)
     ("8mm", "pig_oct07-2026-10-07_14.31.12", 6462,
      "picked by eye from Oct 7 frames at 26-27% (per-second values)", "occlusion_example_8mm.png"),
@@ -52,7 +51,6 @@ EXAMPLES = [  # (system, video, time in s, how it was picked, output file)
     ("3mm", "pig_jun15-2026-06-15_10.14.18", 4828,
      "backup for the 3 mm example; picked by eye from 3 mm frames at 10-12%", "occlusion_example_3mm_backup.png"),
 ]
-LEFT_EYE = "crop=960:1040:0:40"
 
 
 # ---------- figure 1: distribution ----------

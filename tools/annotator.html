@@ -230,12 +230,11 @@ function makeDeleteCell(index) {
   return cell;
 }
 
-// Suturing blocks: muscle_repair, hard_palate, soft_palate.
-// Older annotations used 'suturing' or one block per layer (layer_nasal etc.); those count too.
-const BLOCK_NAMES = ['muscle_repair', 'hard_palate', 'soft_palate', 'suturing'];
+// Suturing blocks: muscle_repair, soft_palate, hard_palate.
+const BLOCK_NAMES = ['muscle_repair', 'soft_palate', 'hard_palate'];
 
 function isSuturingBlock(ev) {
-  return BLOCK_NAMES.includes(ev.event) || ev.event.startsWith('layer_');
+  return BLOCK_NAMES.includes(ev.event);
 }
 
 function blockOf(ev) {

@@ -18,14 +18,12 @@ import numpy as np
 import pandas as pd
 
 from bagio import SYSTEM_BY_BAG
+from project import LEFT_EYE, SYNC_FILE, VIDEO_DIR
 
-VIDEO_DIR = Path("data/video")
 OUT_DIR = Path("data/derived/occlusion")
-SYNC_FILE = Path("results/sync/offsets.csv")
 FRAMES_PER_VIDEO = 25
 EDGE = 300  # s
 SEED = 0
-LEFT_EYE = "crop=960:1040:0:40"
 
 
 def video_duration(video):

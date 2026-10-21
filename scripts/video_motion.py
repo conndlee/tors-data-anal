@@ -21,11 +21,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-VIDEO_DIR = Path("data/video")
+from project import LEFT_EYE, VIDEO_DIR
+
 OUTPUT_DIR = Path("data/derived/video")
 FPS = 10
 WIDTH, HEIGHT = 96, 104
-LEFT_EYE = "crop=960:1040:0:40"  # x 0-960 is the left window; top 40 px is its title bar
 CHUNK = 1000  # frames read at a time
 
 

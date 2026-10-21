@@ -10,7 +10,7 @@ A swap is a "tool_out" span: from the tool sensor reading 0 (tool removed)
 to it next reading 1 (a tool is in). The note has the arm and the next tool
 name the operator picked in the console (8 mm names are chosen by hand there).
 
-3 mm bags do not log tool events; 3 mm swaps are reviewed with tools/tool_review.html.
+3 mm bags do not log tool events; 3 mm swaps can only be found by watching the video.
 
 Output: results/tools/<video>_tools.csv  (annotator CSV format, times in video seconds)
 """
@@ -20,8 +20,8 @@ from pathlib import Path
 import pandas as pd
 
 from bagio import DERIVED_DIR, SYSTEM_BY_BAG
+from project import SYNC_FILE
 
-SYNC_FILE = Path("results/sync/offsets.csv")
 OUTPUT_DIR = Path("results/tools")
 CSV_COLUMNS = ["video", "event", "start_s", "end_s", "duration_s", "note"]
 MERGE_GAP = 30  # s

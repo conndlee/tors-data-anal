@@ -15,7 +15,7 @@ rolling median (BASELINE_S window) and keep the fast pushes and pulls. Per stitc
 95th percentile of |effort - baseline|, taking the larger of the two arms. Videos without a rosbag
 (May 29) have no force values.
 
-Excluded: May 29 from the table (no rosbag, incomplete annotation, a 15.5 min cut outlier).
+Excluded: May 29 (no rosbag, incomplete annotation, a 15.5 min cut outlier), from the table and the test overview.
 
 Output, in results/sutures/preview/:
     stitch_stats_preview.pdf   page 1: table; page 2: overview with numbers, without May 29 (a test)
@@ -34,14 +34,12 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 
 import suture_times as st  # noqa: E402
+from project import DERIVED_DIR, GRID, MUTED, SYNC_FILE, pig_order, short_name, system_by_video  # noqa: E402
 
 OUT_DIR = Path("results/sutures/preview")
-SYNC_FILE = Path("results/sync/offsets.csv")
-DERIVED_DIR = Path("data/derived")
 ARMS = ["psm1", "psm2"]
 BASELINE_S = 60  # s, rolling-median window for the gravity and friction baseline
 BIN_S = 0.1  # s, effort is averaged into bins this long before the rolling median
-EXCLUDED_ASSISTANT = [("pig_may29-2026-05-29_09.34.18", "soft_palate", 4)]  # (video, block, number)
 TEST_EXCLUDED_VIDEO = "pig_may29-2026-05-29_09.34.18"
 
 
@@ -63,31 +61,26 @@ def stitch_force(stitches):
     sync = pd.read_csv(SYNC_FILE).set_index("video")
     rows = []
     for video, own in stitches.groupby("video"):
-        if video not in sync.index:
-            continue  # no rosbag
+        if video not in sync.index:  # no rosbag (May 29)
+            continue
         bag, offset = sync.loc[video, "bag"], sync.loc[video, "offset"]
         deviations = {arm: insertion_deviation(bag, arm) for arm in ARMS}
-        for s in own[~own.failed].itertuples():  # failed attempts are not stitches
-            start, end = s.start_s - offset, s.end_s - offset  # video time -> bag time
-            windows = [d[(d.index >= start) & (d.index <= end)] for d in deviations.values()]
-            rows.append({"video": video, "block": s.block, "number": s.number,
-                         "force_mean_n": max(w.mean() for w in windows),
-                         "force_p95_n": max(w.quantile(0.95) for w in windows)})
+        rows += [stitch_force_row(s, offset, deviations) for s in own[~own.failed].itertuples()]
     return pd.DataFrame(rows)
+
+
+def stitch_force_row(s, offset, deviations):
+    """Mean and 95th percentile of the deviation over one stitch, larger of the two arms."""
+    start, end = s.start_s - offset, s.end_s - offset  # video time -> bag time
+    windows = [d[(d.index >= start) & (d.index <= end)] for d in deviations.values()]
+    return {"video": s.video, "block": s.block, "number": s.number,
+            "force_mean_n": max(w.mean() for w in windows), "force_p95_n": max(w.quantile(0.95) for w in windows)}
 
 
 # ---------- table ----------
 
-def without_excluded_assistant(stitches):
-    stitches = stitches.copy()
-    for video, block, number in EXCLUDED_ASSISTANT:
-        hit = (stitches.video == video) & (stitches.block == block) & (stitches.number == number)
-        stitches.loc[hit, "assistant_s"] = np.nan
-    return stitches
-
-
 def pig_table(stitches, force):
-    systems = st.system_by_video()
+    systems = system_by_video()
     merged = stitches.merge(force, on=["video", "block", "number"], how="left")
     rows = []
     for video, own in merged.groupby("video"):
@@ -100,7 +93,7 @@ def pig_table(stitches, force):
                      "force_mean_n": own.force_mean_n.mean(),
                      "force_p95_n": own.force_p95_n.mean()})
     table = pd.DataFrame(rows)
-    table = table.iloc[sorted(range(len(table)), key=lambda i: st.pig_order(table.video.iloc[i], systems))]
+    table = table.iloc[sorted(range(len(table)), key=lambda i: pig_order(table.video.iloc[i], systems))]
     means = table.groupby("system").mean(numeric_only=True).reset_index().assign(video=None)
     return table, means
 
@@ -118,7 +111,7 @@ def table_rows(table, means):
     rows = []
     for system in sorted(table.system.unique()):
         for r in table[table.system == system].itertuples():
-            rows.append((f"{st.short_name(r.video)} · {system.replace('mm', ' mm')}", r._asdict(), False))
+            rows.append((f"{short_name(r.video)} · {system.replace('mm', ' mm')}", r._asdict(), False))
         mean = means[means.system == system].iloc[0].to_dict()
         rows.append((f"Mean, {system.replace('mm', ' mm')}", mean, True))
     return rows
@@ -126,6 +119,17 @@ def table_rows(table, means):
 
 def format_value(value, fmt):
     return "–" if value is None or (isinstance(value, float) and np.isnan(value)) else fmt.format(value)
+
+
+def style_cell(cell, row, col, is_mean):
+    """Thin grid lines, a muted taller header row, bold mean rows, a wider left-aligned name column."""
+    cell.set_edgecolor(GRID)
+    cell.set_linewidth(0.5)
+    cell.set_width(FIRST_COLUMN if col == 0 else (1 - FIRST_COLUMN) / len(COLUMNS))
+    if row == 0:
+        cell.set_height(cell.get_height() * 1.6)
+    props = {"color": MUTED} if row == 0 else {"fontweight": "bold"} if is_mean else {}
+    cell.set_text_props(ha="left" if col == 0 else "center", **props)
 
 
 def table_page(pdf, table, means):
@@ -139,22 +143,13 @@ def table_page(pdf, table, means):
     grid.set_fontsize(8)
     grid.scale(1, 1.5)
     for (row, col), cell in grid.get_celld().items():
-        cell.set_edgecolor(st.GRID)
-        cell.set_linewidth(0.5)
-        if row == 0:
-            cell.set_height(cell.get_height() * 1.6)
-            cell.set_text_props(color=st.MUTED)
-        elif rows[row - 1][2]:
-            cell.set_text_props(fontweight="bold")
-        cell.set_width(FIRST_COLUMN if col == 0 else (1 - FIRST_COLUMN) / len(COLUMNS))
-        if col == 0:
-            cell.set_text_props(ha="left")
+        style_cell(cell, row, col, is_mean=row > 0 and rows[row - 1][2])
     notes = ("Knots tied: stitches with a completed knot. Stitch: needle first touches tissue to knot tightened. "
              "Knot tying: needle through to knot tightened. Assistant: knot tightened to the assistant's cut. "
              "Force (estimate, preliminary): insertion-axis joint effort minus a 60 s rolling median, mean and 95th "
              "percentile over each stitch, larger of the two arms; no force sensor. May 29 (3 mm) is excluded. "
              "Bold rows: mean of the pigs in each system.")
-    fig.text(0.02, -0.02, notes, fontsize=7, color=st.MUTED, wrap=True, va="top")
+    fig.text(0.02, -0.02, notes, fontsize=7, color=MUTED, wrap=True, va="top")
     pdf.savefig(fig, bbox_inches="tight")
     fig.savefig(OUT_DIR / "stitch_stats_table.png", dpi=200, bbox_inches="tight")
     plt.close(fig)
@@ -174,7 +169,7 @@ def overview_page(pdf, stitches):
 
 def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    stitches = without_excluded_assistant(pd.read_csv(Path("results/sutures/stitches.csv")))
+    stitches = pd.read_csv(Path("results/sutures/stitches.csv"))
     force = stitch_force(stitches)
     force.round(3).to_csv(OUT_DIR / "stitch_force.csv", index=False)
     table, means = pig_table(stitches[stitches.video != TEST_EXCLUDED_VIDEO], force)

@@ -26,8 +26,8 @@ import pandas as pd
 from scipy.signal import correlate
 
 from bagio import DERIVED_DIR, SYSTEM_BY_BAG
+from project import VIDEO_DIR
 
-VIDEO_DIR = Path("data/video")
 MOTION_DIR = DERIVED_DIR / "video"
 OUTPUT = Path("results/sync/offsets.csv")
 STEP = 0.1  # s, both signals are resampled to this grid (matches video_motion FPS)

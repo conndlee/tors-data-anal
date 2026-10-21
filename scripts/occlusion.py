@@ -24,16 +24,14 @@ import pandas as pd
 import torch
 from PIL import Image
 
+from project import LEFT_EYE, SYNC_FILE, VIDEO_DIR
 from train_tool_seg import MODEL_FILE, SIZE, make_model, normalise
 
-VIDEO_DIR = Path("data/video")
 OUT_DIR = Path("data/derived/occlusion/video")
 CHECK_DIR = Path("results/occlusion/check")
-SYNC_FILE = Path("results/sync/offsets.csv")
 FPS = 1
 BATCH = 32
 CHECK_EVERY = 300  # s
-LEFT_EYE = "crop=960:1040:0:40"
 
 
 def read_frames(video):

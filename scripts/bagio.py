@@ -5,8 +5,9 @@ from pathlib import Path
 from rosbags.highlevel import AnyReader
 from rosbags.typesys import Stores, get_typestore
 
+from project import DERIVED_DIR  # noqa: F401  (re-exported for the bag scripts)
+
 BAG_DIR = Path("data/rosbags")
-DERIVED_DIR = Path("data/derived")
 TYPESTORE = get_typestore(Stores.ROS1_NOETIC)
 
 # Which tool system each bag used. June = 3 mm, August/October = 8 mm (confirmed 2026-10-14).

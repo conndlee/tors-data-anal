@@ -37,15 +37,13 @@ import matplotlib.patches  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import matplotlib.ticker  # noqa: E402
 
-import matplotlib.font_manager  # noqa: E402
+from project import (GRID, MUTED, SEGMENTS_FILE, TEXT, pig_order, short_name,  # noqa: E402
+                     system_by_video, use_journal_font)
 
-# Journal look: Arial-style sans-serif (Arial if installed, else Liberation Sans, which has Arial's metrics).
-INSTALLED_FONTS = {f.name for f in matplotlib.font_manager.fontManager.ttflist}
-plt.rcParams["font.family"] = next(f for f in ["Arial", "Liberation Sans", "DejaVu Sans"] if f in INSTALLED_FONTS)
+use_journal_font()
 
 ANNOTATION_DIR = Path("results/annotations")
 OUT_DIR = Path("results/sutures")
-SEGMENTS_FILE = Path("results/occlusion/segments.csv")  # which system each video used
 BLOCKS = ["muscle_repair", "soft_palate", "hard_palate"]
 PHASE_EVENTS = ["dissection", "incision"] + BLOCKS
 PHASES = ["bite", "knot", "assistant"]
@@ -54,7 +52,6 @@ PHASE_LABELS = {"bite": "bite", "knot": "knot tying", "assistant": "assistant"} 
 # read as one family and still separate in greyscale. Contrast on white: 12.5, 7.7 and 2.8 to 1.
 PHASE_COLORS = {"bite": "#531a5e", "knot": "#842996", "assistant": "#cc7ddb"}
 FAILED_COLOR = "#b8b6af"  # failed attempts: neutral grey, so they read as "not a stitch"
-TEXT, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 
 
 # ---------- tables ----------
@@ -141,17 +138,8 @@ def summary_table(stitches):
 STITCH_HEIGHT = 0.35
 FIG_WIDTH = 7  # inches: the journal double-column width
 BRACKET_TICK = 0.05  # height of bracket end ticks, in lane units
-MONTHS = {"may": "May", "jun": "Jun", "aug": "Aug", "oct": "Oct"}
-
-
 def minutes(seconds):
     return seconds / 60
-
-
-def short_name(video):
-    """'pig_oct08-2026-10-08_13.19.52' -> 'Oct 8'."""
-    tag = video.split("_")[1][:5]
-    return f"{MONTHS.get(tag[:3], tag[:3])} {int(tag[3:])}"
 
 
 def draw_segments(ax, segments, lane, height):
@@ -233,16 +221,11 @@ def timeline_figure(events, stitches, video):
     return save_figure(fig, f"timeline_{video}")
 
 
-def system_by_video():
-    if not SEGMENTS_FILE.exists():
-        return {}
-    segments = pd.read_csv(SEGMENTS_FILE).query("trial == 'main'")
-    return dict(zip(segments.video, segments.system))
-
-
-def pig_order(video, systems):
-    """Sort key: system (3 mm first), then recording date ('pig_may29-2026-05-29_...' -> '2026-05-29...')."""
-    return systems.get(video, "?"), video.split("-", 1)[1]
+def draw_group_lines(ax, rows, systems):
+    """A thin line between the 3 mm and 8 mm groups; rows are videos, bottom to top."""
+    for row in range(1, len(rows)):
+        if systems.get(rows[row]) != systems.get(rows[row - 1]):
+            ax.axhline(row - 0.5, color=GRID, linewidth=1)
 
 
 def overview_figure(stitches):
@@ -260,9 +243,7 @@ def overview_figure(stitches):
     ax.set_ylim(-0.6, len(videos) - 0.4)
     last = stitches.cut_s.fillna(stitches.end_s) - stitches.groupby("video").start_s.transform("min")
     ax.set_xlim(-0.5, minutes(last.max()) + 0.5)
-    for row in range(1, len(videos)):  # a thin line between the 3 mm and 8 mm groups
-        if systems.get(list(reversed(videos))[row]) != systems.get(list(reversed(videos))[row - 1]):
-            ax.axhline(row - 0.5, color=GRID, linewidth=1)
+    draw_group_lines(ax, list(reversed(videos)), systems)
     style_axes(ax, "Minutes from the first stitch")
     add_legend(ax, stitches.failed.any())
     return save_figure(fig, "overview")
@@ -282,16 +263,20 @@ def pig_stats(own):
             "span_min": minutes(end - own.start_s.min())}
 
 
+def system_stats_rows(stitches, system, videos):
+    """One row per pig of this system, then its mean row."""
+    pig_rows = [{"kind": "pig", "video": v, "system": system, **pig_stats(stitches[stitches.video == v])}
+                for v in videos]
+    mean = {k: np.mean([r[k] for r in pig_rows]) for k, _, _ in STAT_COLUMNS}
+    return pig_rows + [{"kind": "mean", "video": None, "system": system, **mean}]
+
+
 def stats_rows(stitches, systems):
     """Rows top to bottom: each system's pigs, then that system's mean row."""
-    rows = []
     videos = sorted(stitches.video.unique(), key=lambda v: pig_order(v, systems))
+    rows = []
     for system in sorted({systems.get(v, "?") for v in videos}):
-        own_videos = [v for v in videos if systems.get(v, "?") == system]
-        pig_rows = [{"kind": "pig", "video": v, "system": system, **pig_stats(stitches[stitches.video == v])}
-                    for v in own_videos]
-        mean = {k: np.mean([r[k] for r in pig_rows]) for k, _, _ in STAT_COLUMNS}
-        rows += pig_rows + [{"kind": "mean", "video": None, "system": system, **mean}]
+        rows += system_stats_rows(stitches, system, [v for v in videos if systems.get(v, "?") == system])
     return rows
 
 
@@ -312,25 +297,33 @@ def draw_stats_table(ax, rows, ys):
                     fontweight=weight)
 
 
+def draw_stats_row(ax, table_ax, row, y, stitches):
+    """A pig row draws that pig's stitches; a mean row gets a light line above it, across both panels."""
+    if row["kind"] == "mean":
+        ax.axhline(y + 0.5, color=GRID, linewidth=1)
+        table_ax.axhline(y + 0.5, color=GRID, linewidth=1)
+        return
+    own = stitches[stitches.video == row["video"]]
+    for s in own.itertuples():
+        draw_segments(ax, stitch_segments(s, own.start_s.min()), y, 0.5)
+
+
+def label_stats_rows(ax, rows, ys):
+    ax.set_yticks(ys, [row_label(r) for r in rows])
+    for label, row in zip(ax.get_yticklabels(), rows):
+        label.set_fontweight("bold" if row["kind"] == "mean" else "normal")
+
+
 def overview_stats_figure(stitches):
     """The stitch overview with each pig's numbers beside it and a mean row per system."""
-    systems = system_by_video()
-    rows = stats_rows(stitches, systems)
+    rows = stats_rows(stitches, system_by_video())
     ys = list(range(len(rows) - 1, -1, -1))  # first row at the top
     fig = plt.figure(figsize=(FIG_WIDTH, 0.36 * len(rows) + 1.1))
     grid = fig.add_gridspec(1, 2, width_ratios=[3.0, 1.15], wspace=0.02)
     ax, table_ax = fig.add_subplot(grid[0]), fig.add_subplot(grid[1])
     for row, y in zip(rows, ys):
-        if row["kind"] == "pig":
-            own = stitches[stitches.video == row["video"]]
-            for s in own.itertuples():
-                draw_segments(ax, stitch_segments(s, own.start_s.min()), y, 0.5)
-        else:  # a light line above each mean row, across both panels
-            for a in (ax, table_ax):
-                a.axhline(y + 0.5, color=GRID, linewidth=1)
-    ax.set_yticks(ys, [row_label(r) for r in rows])
-    for label, row in zip(ax.get_yticklabels(), rows):
-        label.set_fontweight("bold" if row["kind"] == "mean" else "normal")
+        draw_stats_row(ax, table_ax, row, y, stitches)
+    label_stats_rows(ax, rows, ys)
     for a in (ax, table_ax):
         a.set_ylim(-0.6, len(rows) - 0.4)
     ax.set_xlim(-0.5, max(r["span_min"] for r in rows if r["kind"] == "pig") + 0.5)
@@ -382,9 +375,7 @@ def procedure_figure(events_by_video, stitches, procedures):
     ax.set_yticks(range(len(rows)), [f"{short_name(v)} · {systems.get(v, '?').replace('mm', ' mm')}" for v in rows])
     ax.set_ylim(-0.6, len(rows) - 0.4)
     ax.set_xlim(-1, procedures.total_min.max() + 12)
-    for row in range(1, len(rows)):  # a thin line between the 3 mm and 8 mm groups
-        if systems.get(rows[row]) != systems.get(rows[row - 1]):
-            ax.axhline(row - 0.5, color=GRID, linewidth=1)
+    draw_group_lines(ax, rows, systems)
     style_axes(ax, "Minutes from the start of dissection")
     names = {"dissection": "dissection", "muscle_repair": "muscle repair", "soft_palate": "soft palate",
              "hard_palate": "hard palate"}
@@ -436,21 +427,23 @@ def format_cell(value):
     return str(value)
 
 
+def stitch_checks(s):
+    """Problems with one completed stitch, as messages."""
+    where = f"{short_name(s.video)}, {s.block.replace('_', ' ')} stitch {s.number}"
+    checks = [(s.needle_marks != 1, f"{s.needle_marks} needle_through marks; the last one is used."),
+              (np.isnan(s.cut_s), "no cut."),
+              (s.assistant_s > LONG_ASSISTANT, f"{s.assistant_s / 60:.1f} min from knot to cut; check the cut mark.")]
+    return [f"- {where}: {message}" for failed, message in checks if failed]
+
+
 def check_lines(stitches, blocks):
-    lines = []
-    for s in stitches[stitches.failed].itertuples():
-        lines.append(f"- {short_name(s.video)}, {s.block.replace('_', ' ')}: failed attempt at {s.start_s:.0f} s "
-                     f"({s.attempt_s:.0f} s; no needle through, no cut). Left out of stitch times.")
+    lines = [f"- {short_name(s.video)}, {s.block.replace('_', ' ')}: failed attempt at {s.start_s:.0f} s "
+             f"({s.attempt_s:.0f} s; no needle through, no cut). Left out of stitch times."
+             for s in stitches[stitches.failed].itertuples()]
     for s in stitches[~stitches.failed].itertuples():
-        where = f"{short_name(s.video)}, {s.block.replace('_', ' ')} stitch {s.number}"
-        if s.needle_marks != 1:
-            lines.append(f"- {where}: {s.needle_marks} needle_through marks; the last one is used.")
-        if np.isnan(s.cut_s):
-            lines.append(f"- {where}: no cut.")
-        if s.assistant_s > LONG_ASSISTANT:
-            lines.append(f"- {where}: {s.assistant_s / 60:.1f} min from knot to cut; check the cut mark.")
-    for b in blocks[blocks.stitches == 0].itertuples():
-        lines.append(f"- {short_name(b.video)}, {b.block.replace('_', ' ')}: block has no stitches marked.")
+        lines += stitch_checks(s)
+    lines += [f"- {short_name(b.video)}, {b.block.replace('_', ' ')}: block has no stitches marked."
+              for b in blocks[blocks.stitches == 0].itertuples()]
     return lines or ["- None."]
 
 
@@ -490,6 +483,15 @@ def write_markdown(stitches, blocks, summary, figures, overview, overview_stats,
     (OUT_DIR / "sutures.md").write_text("\n".join(lines))
 
 
+def skip_reason(events, main_trials):
+    """Why an annotation file is left out, or None."""
+    if events.video.iloc[0] not in main_trials:
+        return f"not a main trial (see {SEGMENTS_FILE})"
+    if not (events.event == "stitch").any():
+        return "no stitches marked yet"
+    return None
+
+
 def main():
     paths = [Path(a) for a in sys.argv[1:]] or sorted(ANNOTATION_DIR.glob("*_events.csv"))
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -497,13 +499,10 @@ def main():
     main_trials = system_by_video()
     for path in paths:
         events = load_events(path)
+        if skip_reason(events, main_trials):
+            print(f"skipped {path.name}: {skip_reason(events, main_trials)}")
+            continue
         video = events.video.iloc[0]
-        if video not in main_trials:
-            print(f"skipped {path.name}: not a main trial (see {SEGMENTS_FILE})")
-            continue
-        if not (events.event == "stitch").any():
-            print(f"skipped {path.name}: no stitches marked yet")
-            continue
         stitches = stitch_table(events)
         figures[video] = timeline_figure(events, stitches, video)
         all_stitches.append(stitches)

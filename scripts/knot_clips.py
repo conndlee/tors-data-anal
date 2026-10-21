@@ -18,22 +18,13 @@ from pathlib import Path
 
 import pandas as pd
 
-VIDEO_DIR = Path("data/video")
+from project import LEFT_EYE, VIDEO_DIR, pig_tag, short_name
+
 STITCHES = Path("results/sutures/stitches.csv")
 OUT_DIR = Path("results/sutures/knot_clips")
 PAD = 2  # s before and after the knot-tying window
 SPEED = 3
 WIDTH = 480
-LEFT_EYE = "crop=960:1040:0:40"
-MONTHS = {"may": "May", "jun": "Jun", "aug": "Aug", "oct": "Oct"}
-
-
-def pig_of(video):
-    return video.split("_")[1][:5]  # 'pig_oct08-2026-...' -> 'oct08'
-
-
-def pig_label(pig):
-    return f"{MONTHS[pig[:3]]} {int(pig[3:])}"
 
 
 def cut_clip(video, start, duration, label, path):
@@ -52,12 +43,12 @@ def main():
     stitches = stitches[~stitches.failed & stitches.knot_s.notna()]
     clips = []
     for s in stitches.itertuples():
-        pig, block = pig_of(s.video), s.block
+        pig, block = pig_tag(s.video), s.block
         knot_start = s.start_s + s.bite_s
         name = f"{pig}_{block}_{s.number}.mp4"
-        label = f"{pig_label(pig)} - {block.replace('_', ' ')} {s.number} - {SPEED}x"
+        label = f"{short_name(s.video)} - {block.replace('_', ' ')} {s.number} - {SPEED}x"
         cut_clip(s.video, knot_start - PAD, s.knot_s + 2 * PAD, label, OUT_DIR / name)
-        clips.append({"id": f"{pig}_{block}_{s.number}", "video": s.video, "pig": pig_label(pig), "block": block,
+        clips.append({"id": f"{pig}_{block}_{s.number}", "video": s.video, "pig": short_name(s.video), "block": block,
                       "number": int(s.number), "knot_start_s": round(knot_start, 1), "knot_s": round(s.knot_s, 1),
                       "src": f"../results/sutures/knot_clips/{name}"})
         print(name, flush=True)
