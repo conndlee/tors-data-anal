@@ -24,6 +24,7 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 from PIL import Image
+from scipy.stats import gaussian_kde
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
@@ -36,8 +37,11 @@ FIGURE_DIR = RESULT_DIR / "figures"
 VIDEO_DIR = Path("data/video")
 DARK = 20
 IN_VIEW = 1  # % of the image
-# Reference categorical palette (dataviz skill), slots 1 and 2.
-COLORS = {"3mm": "#2a78d6", "8mm": "#eb6834"}
+SMOOTHING = 1.5  # points of occlusion; kernel width of the smoothed distribution
+# 3 mm in the suture-figure purple (#842996), 8 mm in teal (#2a9d8f). The masks in the example images use
+# the same colours, so plot and images match; teal stays visible on the grey metal of the 8 mm instruments.
+COLORS = {"3mm": "#842996", "8mm": "#2a9d8f"}
+COLOR_NAMES = {"3mm": "purple", "8mm": "teal"}
 NAMES = {"3mm": "3 mm", "8mm": "8 mm"}
 TEXT, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 EXAMPLES = [  # (system, video, time in s, how it was picked, output file)
@@ -74,15 +78,22 @@ def style_axes(ax):
     ax.set_axisbelow(True)
 
 
+def smoothed_share(values, grid):
+    """Gaussian kernel density with a fixed width of SMOOTHING points, as % of frames per 1-point bin."""
+    kde = gaussian_kde(values, bw_method=SMOOTHING / values.std(ddof=1))
+    return kde(grid) * 100
+
+
 def distribution_figure():
     """Draw the distribution; return per-system numbers for the caption."""
     values, pigs = frames_by_system()
-    bins = np.arange(0, 61, 1)
+    grid = np.linspace(0, 60, 601)
     fig, ax = plt.subplots(figsize=(7, 3.4))
     stats = {}
     for system in sorted(values):
-        share, _ = np.histogram(values[system], bins=bins)
-        ax.stairs(share / len(values[system]) * 100, bins, color=COLORS[system], linewidth=2, label=NAMES[system])
+        share = smoothed_share(values[system].to_numpy(), grid)
+        ax.fill_between(grid, share, color=COLORS[system], alpha=0.12, linewidth=0)
+        ax.plot(grid, share, color=COLORS[system], linewidth=2, label=NAMES[system])
         median = values[system].median()
         ax.axvline(median, color=COLORS[system], linewidth=1.2, linestyle="--")
         stats[system] = {"median": median, "pigs": pigs[system], "frames": len(values[system])}
@@ -157,9 +168,10 @@ def write_markdown(stats, examples):
         "",
         f"**Instrument occlusion of the camera view, 3 mm vs 8 mm tools.** "
         f"Share of the left-eye camera image covered by the robotic instruments, per video frame "
-        f"(1 frame per second, frames with instruments in view). "
-        f"Blue: 3 mm ({s3['pigs']} pigs, {s3['frames']:,} frames). "
-        f"Orange: 8 mm ({s8['pigs']} pigs, {s8['frames']:,} frames). "
+        f"(1 frame per second, frames with instruments in view), smoothed with a Gaussian kernel "
+        f"{SMOOTHING} points wide. "
+        f"Purple: 3 mm ({s3['pigs']} pigs, {s3['frames']:,} frames). "
+        f"Teal: 8 mm ({s8['pigs']} pigs, {s8['frames']:,} frames). "
         f"Dashed lines: medians, {s3['median']:.1f}% (3 mm) and {s8['median']:.1f}% (8 mm). "
         f"Median of the per-pig medians: 3 mm {pig_level_line('3mm')}, 8 mm {pig_level_line('8mm')}. "
         f"Instruments were segmented with a DeepLabV3 model trained on 120 hand-labelled frames.",
@@ -176,7 +188,7 @@ def write_markdown(stats, examples):
             f"![{NAMES[ex['system']]} example]({ex['file']})",
             "",
             f"**{NAMES[ex['system']]} tools during suturing.** Instrument mask shaded "
-            f"({'orange' if ex['system'] == '8mm' else 'blue'}); "
+            f"({COLOR_NAMES[ex['system']]}); "
             f"{ex['covered']:.0f}% of the image is covered. "
             f"Source: `{ex['video']}.mp4` at {ex['t']} s, left eye; {ex['picked']}.",
             "",

@@ -9,8 +9,11 @@ Per stitch (x ... x), with its needle_through (n) and the assistant's cut (u):
     bite       start -> needle through (the last n inside the stitch, i.e. the final pass)
     knot tying needle through -> end (last throw tightened)
     assistant  end -> cut (the cut paired with the stitch that most recently ended before it)
-    gap        end -> start of the next stitch
+    gap        end -> start of the next completed stitch
 Each stitch belongs to the block (muscle_repair, soft_palate, hard_palate) containing its start.
+A stitch span with no needle_through and no cut is a failed attempt (from a mistake or a tear):
+it is left out of all stitch times and counts, its duration is kept as attempt_s, and it is drawn
+grey and marked x. The time it took falls inside the gap between completed stitches.
 
 Output, in results/sutures/:
     stitches.csv, blocks.csv, summary.csv
@@ -50,6 +53,7 @@ PHASE_LABELS = {"bite": "bite", "knot": "knot tying", "assistant": "assistant"} 
 # One-hue purple ramp around #842996 (the knot colour), dark -> light, so the three stages of a stitch
 # read as one family and still separate in greyscale. Contrast on white: 12.5, 7.7 and 2.8 to 1.
 PHASE_COLORS = {"bite": "#531a5e", "knot": "#842996", "assistant": "#cc7ddb"}
+FAILED_COLOR = "#b8b6af"  # failed attempts: neutral grey, so they read as "not a stitch"
 TEXT, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 
 
@@ -81,20 +85,30 @@ def stitch_table(events):
     cuts = events[events.event == "cut"].start_s.to_numpy()
     blocks = events[events.event.isin(BLOCKS)]
     rows = []
-    for i, s in stitches.iterrows():
+    for s in stitches.itertuples():
         inside = needles[(needles >= s.start_s) & (needles <= s.end_s)]
         needle = inside.max() if len(inside) else np.nan
         cut = paired_cut(s.end_s, stitches, cuts)
-        next_start = stitches.start_s.iloc[i + 1] if i + 1 < len(stitches) else np.nan
         rows.append({
             "video": s.video, "block": block_of(s.start_s, blocks), "start_s": s.start_s, "end_s": s.end_s,
             "stitch_s": s.end_s - s.start_s, "bite_s": needle - s.start_s, "knot_s": s.end_s - needle,
-            "assistant_s": cut - s.end_s, "gap_s": next_start - s.end_s,
-            "needle_marks": len(inside), "cut_s": cut, "note": s.note,
+            "assistant_s": cut - s.end_s, "needle_marks": len(inside), "cut_s": cut, "note": s.note,
         })
-    table = pd.DataFrame(rows)
-    table.insert(2, "number", table.groupby("block").cumcount() + 1)
-    return table
+    return mark_failed(pd.DataFrame(rows))
+
+
+def mark_failed(table):
+    """Failed attempts (no needle_through, no cut) leave the stitch times; number and gaps use completed stitches."""
+    table["failed"] = (table.needle_marks == 0) & table.cut_s.isna()
+    table["attempt_s"] = np.where(table.failed, table.stitch_s, np.nan)
+    table.loc[table.failed, "stitch_s"] = np.nan
+    done = table[~table.failed]
+    table["number"] = 0  # 0 = failed attempt
+    table.loc[done.index, "number"] = done.groupby("block").cumcount() + 1
+    table["gap_s"] = np.nan
+    table.loc[done.index, "gap_s"] = done.start_s.shift(-1) - done.end_s
+    columns = ["video", "block", "number"] + [c for c in table.columns if c not in ("video", "block", "number")]
+    return table[columns]
 
 
 def block_table(events, stitches):
@@ -102,7 +116,8 @@ def block_table(events, stitches):
     for b in events[events.event.isin(BLOCKS)].itertuples():
         own = stitches[stitches.block == b.event]
         rows.append({"video": b.video, "block": b.event, "start_s": b.start_s, "end_s": b.end_s,
-                     "duration_s": b.end_s - b.start_s, "stitches": len(own),
+                     "duration_s": b.end_s - b.start_s, "stitches": int((~own.failed).sum()),
+                     "failed": int(own.failed.sum()),
                      "stitching_pct": 100 * own.stitch_s.sum() / (b.end_s - b.start_s)})
     return pd.DataFrame(rows)
 
@@ -148,7 +163,10 @@ def draw_segments(ax, segments, lane, height):
 
 
 def stitch_segments(s, origin=0):
-    """Bite, knot and (if cut) assistant segments of one stitch, in minutes from origin (seconds)."""
+    """Bite, knot and (if cut) assistant segments of one stitch, in minutes from origin (seconds).
+    A failed attempt is one grey segment."""
+    if s.failed:
+        return [(minutes(s.start_s - origin), minutes(s.end_s - origin), FAILED_COLOR)]
     start, needle, end = (minutes(t - origin) for t in (s.start_s, s.start_s + s.bite_s, s.end_s))
     segments = [(start, needle, PHASE_COLORS["bite"]), (needle, end, PHASE_COLORS["knot"])]
     if not np.isnan(s.cut_s):
@@ -165,9 +183,11 @@ def draw_bracket(ax, x0, x1, y, label, direction, fontsize):
     ax.text((x0 + x1) / 2, label_y, label, ha="center", va=align, fontsize=fontsize, color=MUTED)
 
 
-def add_legend(ax):
+def add_legend(ax, show_failed=False):
     handles = [matplotlib.patches.Patch(color=PHASE_COLORS[p], label=PHASE_LABELS[p]) for p in PHASES]
-    ax.legend(handles=handles, frameon=False, fontsize=8, ncol=3, loc="upper right", bbox_to_anchor=(1, -0.18),
+    if show_failed:
+        handles.append(matplotlib.patches.Patch(color=FAILED_COLOR, label="failed attempt"))
+    ax.legend(handles=handles, frameon=False, fontsize=8, ncol=len(handles), loc="upper right", bbox_to_anchor=(1, -0.18),
               labelcolor=MUTED, handlelength=1.2, handleheight=0.9, columnspacing=1.2)
 
 
@@ -199,7 +219,8 @@ def timeline_figure(events, stitches, video):
     for s in stitches.itertuples():
         draw_segments(ax, stitch_segments(s), lane, STITCH_HEIGHT)
         whole_stitch_end = s.end_s if np.isnan(s.cut_s) else s.cut_s  # bracket includes the assistant's cut
-        draw_bracket(ax, minutes(s.start_s), minutes(whole_stitch_end), lane - STITCH_HEIGHT / 2 - 0.06, str(s.number), 1, 7)
+        label = "×" if s.failed else str(s.number)
+        draw_bracket(ax, minutes(s.start_s), minutes(whole_stitch_end), lane - STITCH_HEIGHT / 2 - 0.06, label, 1, 7)
     for e in events[events.event.isin(PHASE_EVENTS)].itertuples():
         label = e.event.replace("_", " ")
         draw_bracket(ax, minutes(e.start_s), minutes(e.end_s), lane + STITCH_HEIGHT / 2 + 0.12, label, -1, 8.5)
@@ -208,7 +229,7 @@ def timeline_figure(events, stitches, video):
     ax.set_ylim(0.6, 1.5)
     ax.set_yticks([])
     style_axes(ax, "Video time (min)")
-    add_legend(ax)
+    add_legend(ax, stitches.failed.any())
     return save_figure(fig, f"timeline_{video}")
 
 
@@ -243,20 +264,21 @@ def overview_figure(stitches):
         if systems.get(list(reversed(videos))[row]) != systems.get(list(reversed(videos))[row - 1]):
             ax.axhline(row - 0.5, color=GRID, linewidth=1)
     style_axes(ax, "Minutes from the first stitch")
-    add_legend(ax)
+    add_legend(ax, stitches.failed.any())
     return save_figure(fig, "overview")
 
 
 # ---------- overview with numbers ----------
 
-STAT_COLUMNS = [("stitches", "Stitches", "{:.0f}"), ("stitch_min", "Stitch\n(min)", "{:.1f}"),
+STAT_COLUMNS = [("stitches", "Stitches", "{:.0f}"), ("failed", "Failed", "{:.0f}"), ("stitch_min", "Stitch\n(min)", "{:.1f}"),
                 ("gap_min", "Gap\n(min)", "{:.1f}"), ("span_min", "Span\n(min)", "{:.0f}")]
 
 
 def pig_stats(own):
     """Numbers for one pig's stitches."""
     end = own.cut_s.fillna(own.end_s).max()
-    return {"stitches": len(own), "stitch_min": minutes(own.stitch_s.mean()), "gap_min": minutes(own.gap_s.mean()),
+    return {"stitches": int((~own.failed).sum()), "failed": int(own.failed.sum()),
+            "stitch_min": minutes(own.stitch_s.mean()), "gap_min": minutes(own.gap_s.mean()),
             "span_min": minutes(end - own.start_s.min())}
 
 
@@ -296,7 +318,7 @@ def overview_stats_figure(stitches):
     rows = stats_rows(stitches, systems)
     ys = list(range(len(rows) - 1, -1, -1))  # first row at the top
     fig = plt.figure(figsize=(FIG_WIDTH, 0.36 * len(rows) + 1.1))
-    grid = fig.add_gridspec(1, 2, width_ratios=[3.0, 1.8], wspace=0.03)
+    grid = fig.add_gridspec(1, 2, width_ratios=[3.0, 1.15], wspace=0.02)
     ax, table_ax = fig.add_subplot(grid[0]), fig.add_subplot(grid[1])
     for row, y in zip(rows, ys):
         if row["kind"] == "pig":
@@ -314,14 +336,16 @@ def overview_stats_figure(stitches):
     ax.set_xlim(-0.5, max(r["span_min"] for r in rows if r["kind"] == "pig") + 0.5)
     style_axes(ax, "Minutes from the first stitch")
     draw_stats_table(table_ax, rows, ys)
-    add_legend(ax)
+    add_legend(ax, stitches.failed.any())
     return save_figure(fig, "overview_stats")
 
 
 # ---------- procedure time ----------
 
-PHASE_TINTS = {"dissection": "#dcdad4", "incision": "#dcdad4", "muscle_repair": "#f5d7bf",
-               "soft_palate": "#cfe0f3", "hard_palate": "#cfe8d4"}  # light tints; the purple stitches sit on top
+# Cool, pale tints (grey, teal, blue, mint) that sit with the purple and teal of the other figures;
+# the purple stitches sit on top.
+PHASE_TINTS = {"dissection": "#eff1f2", "incision": "#eff1f2", "muscle_repair": "#b8e1da",
+               "soft_palate": "#d4e3f5", "hard_palate": "#cfeedd"}
 
 
 def procedure_row(events, stitches):
@@ -332,7 +356,8 @@ def procedure_row(events, stitches):
     end = stitches.cut_s.fillna(stitches.end_s).max()
     return {"video": events.video.iloc[0], "start_s": start, "end_s": end,
             "total_min": minutes(end - start), "dissection_min": minutes((dissection.end_s - dissection.start_s).sum()),
-            "suturing_min": minutes(end - stitches.start_s.min()), "stitches": len(stitches),
+            "suturing_min": minutes(end - stitches.start_s.min()), "stitches": int((~stitches.failed).sum()),
+            "failed": int(stitches.failed.sum()),
             "dissection_marked": len(dissection) > 0}
 
 
@@ -413,7 +438,10 @@ def format_cell(value):
 
 def check_lines(stitches, blocks):
     lines = []
-    for s in stitches.itertuples():
+    for s in stitches[stitches.failed].itertuples():
+        lines.append(f"- {short_name(s.video)}, {s.block.replace('_', ' ')}: failed attempt at {s.start_s:.0f} s "
+                     f"({s.attempt_s:.0f} s; no needle through, no cut). Left out of stitch times.")
+    for s in stitches[~stitches.failed].itertuples():
         where = f"{short_name(s.video)}, {s.block.replace('_', ' ')} stitch {s.number}"
         if s.needle_marks != 1:
             lines.append(f"- {where}: {s.needle_marks} needle_through marks; the last one is used.")
