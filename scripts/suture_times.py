@@ -91,7 +91,7 @@ def stitch_table(events):
             "stitch_s": s.end_s - s.start_s, "bite_s": needle - s.start_s, "knot_s": s.end_s - needle,
             "assistant_s": cut - s.end_s, "needle_marks": len(inside), "cut_s": cut, "note": s.note,
         })
-    return mark_failed(pd.DataFrame(rows))
+    return drop_assistant_outliers(mark_failed(pd.DataFrame(rows)))
 
 
 def mark_failed(table):
@@ -106,6 +106,21 @@ def mark_failed(table):
     table.loc[done.index, "gap_s"] = done.start_s.shift(-1) - done.end_s
     columns = ["video", "block", "number"] + [c for c in table.columns if c not in ("video", "block", "number")]
     return table[columns]
+
+
+# Assistant times left out as outliers: (video, stitch start in video seconds). Matched by start time, not by
+# number, because numbers shift when annotations change. The cut is dropped too, so it is not drawn and does not
+# lengthen the suturing span or total.
+ASSISTANT_OUTLIERS = [("pig_may29-2026-05-29_09.34.18", 6496.6)]  # soft palate stitch 4: 15.5 min knot to cut
+
+
+def drop_assistant_outliers(table):
+    table["assistant_excluded"] = False
+    for video, start in ASSISTANT_OUTLIERS:
+        hit = (table.video == video) & ((table.start_s - start).abs() < 1)
+        table.loc[hit, ["assistant_s", "cut_s"]] = np.nan
+        table.loc[hit, "assistant_excluded"] = True
+    return table
 
 
 def block_table(events, stitches):
@@ -251,7 +266,7 @@ def overview_figure(stitches):
 
 # ---------- overview with numbers ----------
 
-STAT_COLUMNS = [("stitches", "Stitches", "{:.0f}"), ("failed", "Failed", "{:.0f}"), ("stitch_min", "Stitch\n(min)", "{:.1f}"),
+STAT_COLUMNS = [("stitches", "Stitches", "{:.0f}"), ("stitch_min", "Stitch\n(min)", "{:.1f}"),
                 ("gap_min", "Gap\n(min)", "{:.1f}"), ("span_min", "Span\n(min)", "{:.0f}")]
 
 
@@ -431,7 +446,8 @@ def stitch_checks(s):
     """Problems with one completed stitch, as messages."""
     where = f"{short_name(s.video)}, {s.block.replace('_', ' ')} stitch {s.number}"
     checks = [(s.needle_marks != 1, f"{s.needle_marks} needle_through marks; the last one is used."),
-              (np.isnan(s.cut_s), "no cut."),
+              (np.isnan(s.cut_s) and not s.assistant_excluded, "no cut."),
+              (s.assistant_excluded, "assistant time left out as an outlier."),
               (s.assistant_s > LONG_ASSISTANT, f"{s.assistant_s / 60:.1f} min from knot to cut; check the cut mark.")]
     return [f"- {where}: {message}" for failed, message in checks if failed]
 

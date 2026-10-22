@@ -98,7 +98,7 @@ def pig_table(stitches, force):
     return table, means
 
 
-COLUMNS = [("knots", "Knots\ntied", "{:.0f}"), ("failed", "Failed\nattempts", "{:.0f}"), ("stitch_min", "Stitch\n(min)", "{:.1f}"),
+COLUMNS = [("knots", "Knots\ntied", "{:.0f}"), ("stitch_min", "Stitch\n(min)", "{:.1f}"),
            ("knot_min", "Knot tying\n(min)", "{:.1f}"), ("assistant_s", "Assistant\n(s)", "{:.0f}"),
            ("force_mean_n", "Force, mean\n(N, est.)", "{:.2f}"), ("force_p95_n", "Force, peak\n(N, est.)", "{:.2f}")]
 

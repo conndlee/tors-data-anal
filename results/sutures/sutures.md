@@ -10,11 +10,11 @@ Written by `scripts/suture_times.py` from `results/annotations/`; re-run it afte
 
 | pig | system | total (min) | dissection (min) | first stitch to last cut (min) | stitches |
 |---|---|---|---|---|---|
-| May 29 | 3 mm | 116 | 19 | 92 | 4 |
+| May 29 | 3 mm | 100 | 19 | 77 | 4 |
 | Jun 15 | 3 mm | 116 | 46 | 52 | 6 |
 | Jun 16 | 3 mm | 149 | 61 | 83 | 13 |
 | Aug 18 | 8 mm | 76 | 32 | 38 | 7 |
-| Aug 19 | 8 mm | 75 | 18 | 53 | 12 |
+| Aug 19 | 8 mm | 75 | 18 | 53 | 13 |
 | Oct 7 | 8 mm | 113 | 27 | 77 | 8 |
 | Oct 8 | 8 mm | 62 | 8.8 | 50 | 11 |
 
@@ -22,7 +22,7 @@ Median per system:
 
 | system | total (min) | dissection (min) | first stitch to last cut (min) | stitches |
 |---|---|---|---|---|
-| 3 mm | 116 | 46 | 83 | 6.0 |
+| 3 mm | 116 | 46 | 77 | 6.0 |
 | 8 mm | 75 | 23 | 52 | 9.5 |
 
 
@@ -84,21 +84,21 @@ Median per system:
 
 | block | measure | n | mean | SD | median | min | max |
 |---|---|---|---|---|---|---|---|
-| all blocks | stitch | 61 | 285 | 183 | 224 | 116 | 1265 |
-| all blocks | bite | 61 | 131 | 141 | 80 | 28 | 832 |
-| all blocks | knot tying | 61 | 154 | 74 | 134 | 45 | 473 |
-| all blocks | assistant | 61 | 52 | 117 | 32 | 14 | 931 |
-| all blocks | gap | 54 | 152 | 201 | 68 | 22 | 1082 |
+| all blocks | stitch | 62 | 280 | 183 | 216 | 116 | 1265 |
+| all blocks | bite | 62 | 130 | 141 | 78 | 28 | 832 |
+| all blocks | knot tying | 62 | 150 | 73 | 132 | 45 | 473 |
+| all blocks | assistant | 61 | 38 | 23 | 32 | 14 | 161 |
+| all blocks | gap | 55 | 150 | 199 | 67 | 22 | 1082 |
 | muscle repair | stitch | 7 | 370 | 212 | 338 | 182 | 815 |
 | muscle repair | bite | 7 | 230 | 187 | 185 | 76 | 628 |
 | muscle repair | knot tying | 7 | 140 | 30 | 137 | 106 | 186 |
 | muscle repair | assistant | 7 | 44 | 16 | 39 | 27 | 69 |
 | muscle repair | gap | 7 | 117 | 70 | 86 | 53 | 248 |
-| soft palate | stitch | 30 | 321 | 209 | 285 | 116 | 1265 |
-| soft palate | bite | 30 | 140 | 152 | 103 | 28 | 832 |
-| soft palate | knot tying | 30 | 180 | 93 | 146 | 45 | 473 |
-| soft palate | assistant | 30 | 71 | 165 | 32 | 15 | 931 |
-| soft palate | gap | 28 | 203 | 262 | 68 | 22 | 1082 |
+| soft palate | stitch | 31 | 309 | 211 | 268 | 116 | 1265 |
+| soft palate | bite | 31 | 137 | 151 | 90 | 28 | 832 |
+| soft palate | knot tying | 31 | 172 | 93 | 143 | 45 | 473 |
+| soft palate | assistant | 30 | 41 | 28 | 32 | 15 | 161 |
+| soft palate | gap | 29 | 198 | 259 | 67 | 22 | 1082 |
 | hard palate | stitch | 24 | 216 | 107 | 177 | 125 | 553 |
 | hard palate | bite | 24 | 91 | 95 | 65 | 28 | 460 |
 | hard palate | knot tying | 24 | 124 | 35 | 111 | 84 | 213 |
@@ -112,7 +112,7 @@ Median per system:
 | pig_aug18-2026-08-18_10.10.14 | soft palate | 1158 | 4 | 80 |
 | pig_aug18-2026-08-18_10.10.14 | hard palate | 1119 | 3 | 65 |
 | pig_aug19-2026-08-19_12.09.17 | muscle repair | 825 | 2 | 65 |
-| pig_aug19-2026-08-19_12.09.17 | soft palate | 1062 | 4 | 82 |
+| pig_aug19-2026-08-19_12.09.17 | soft palate | 1062 | 5 | 77 |
 | pig_aug19-2026-08-19_12.09.17 | hard palate | 1408 | 6 | 68 |
 | pig_jun15-2026-06-15_10.14.18 | soft palate | 2001 | 4 | 59 |
 | pig_jun15-2026-06-15_10.14.18 | hard palate | 1150 | 2 | 92 |
@@ -143,8 +143,9 @@ Median per system:
 | muscle repair | 2 | 182 | 76 | 106 | 39 | 156 |
 | soft palate | 1 | 209 | 80 | 129 | 30 | 36 |
 | soft palate | 2 | 176 | 30 | 145 | 31 | 67 |
-| soft palate | 3 | 310 | 40 | 269 | 16 | 22 |
-| soft palate | 4 | 180 | 135 | 45 | 72 | 126 |
+| soft palate | 3 | 119 | 40 | 79 | 46 | 52 |
+| soft palate | 4 | 139 | 34 | 104 | 16 | 22 |
+| soft palate | 5 | 180 | 135 | 45 | 72 | 126 |
 | hard palate | 1 | 164 | 68 | 96 | 36 | 44 |
 | hard palate | 2 | 133 | 28 | 105 | 67 | 71 |
 | hard palate | 3 | 196 | 35 | 161 | 32 | 93 |
@@ -173,7 +174,7 @@ Median per system:
 | soft palate | 1 | 1265 | 832 | 433 | 42 | 1082 |
 | soft palate | 2 | 429 | 159 | 270 | 81 | 167 |
 | soft palate | 3 | 432 | 254 | 178 | 65 | 717 |
-| soft palate | 4 | 503 | 307 | 196 | 931 |  |
+| soft palate | 4 | 503 | 307 | 196 |  |  |
 | muscle repair | 1 | 815 | 628 | 186 | 28 | 139 |
 | soft palate | 1 | 305 | 194 | 111 | 23 | 302 |
 | soft palate | 2 | 561 | 88 | 473 | 26 | 59 |
@@ -196,5 +197,5 @@ Median per system:
 
 ## Annotation checks
 
-- May 29, soft palate stitch 4: 15.5 min from knot to cut; check the cut mark.
+- May 29, soft palate stitch 4: assistant time left out as an outlier.
 - Oct 8, soft palate stitch 5: 2 needle_through marks; the last one is used.

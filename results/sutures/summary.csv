@@ -1,19 +1,19 @@
 block,measure,n,mean_s,sd_s,median_s,min_s,max_s
-all blocks,stitch,61,285.01,182.86,224.48,115.91,1264.9
-all blocks,bite,61,131.22,141.19,80.23,27.5,831.7
-all blocks,knot tying,61,153.79,73.94,134.35,44.78,472.92
-all blocks,assistant,61,52.4,116.58,31.96,14.09,930.91
-all blocks,gap,54,152.32,200.83,67.51,22.16,1081.98
+all blocks,stitch,62,279.57,183.45,216.17,115.91,1264.9
+all blocks,bite,62,129.66,140.57,78.21,27.5,831.7
+all blocks,knot tying,62,149.92,72.64,132.11,44.78,472.92
+all blocks,assistant,61,37.89,22.69,31.96,14.09,160.82
+all blocks,gap,55,150.5,199.42,66.84,22.08,1081.98
 muscle_repair,stitch,7,369.81,211.5,338.48,181.8,814.68
 muscle_repair,bite,7,229.75,186.56,185.07,76.19,628.45
 muscle_repair,knot tying,7,140.06,29.63,137.16,105.61,186.22
 muscle_repair,assistant,7,44.5,15.96,38.72,27.21,68.84
 muscle_repair,gap,7,117.1,69.52,85.66,52.7,247.97
-soft_palate,stitch,30,320.75,209.1,284.73,115.91,1264.9
-soft_palate,bite,30,140.27,151.95,103.21,27.5,831.7
-soft_palate,knot tying,30,180.48,93.11,146.11,44.78,472.92
-soft_palate,assistant,30,70.68,164.9,31.91,14.77,930.91
-soft_palate,gap,28,203.43,261.68,67.51,22.16,1081.98
+soft_palate,stitch,31,308.73,211.12,267.97,115.91,1264.9
+soft_palate,bite,31,136.86,150.6,89.59,27.5,831.7
+soft_palate,knot tying,31,171.87,92.63,143.23,44.78,472.92
+soft_palate,assistant,30,41.19,28.21,31.91,14.77,160.82
+soft_palate,gap,29,198.2,258.5,66.84,22.08,1081.98
 hard_palate,stitch,24,215.6,107.49,176.71,125.34,553.29
 hard_palate,bite,24,91.16,95.27,64.57,27.74,459.5
 hard_palate,knot tying,24,124.44,34.88,111.4,83.75,212.59

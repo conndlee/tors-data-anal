@@ -41,7 +41,8 @@
 <script src="../results/sutures/knot_clips/clips.js"></script>
 <script>
 const STORE_KEY = 'knot_throws';
-const counts = load();
+const VERSION_KEY = 'knot_throws_version';
+const counts = migrate(load());
 const pigSelect = document.getElementById('pigSelect');
 const rate = document.getElementById('rate');
 
@@ -53,6 +54,22 @@ function load() {
 
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(counts)); } catch (e) { /* storage unavailable */ }
+}
+
+// When the clips are regenerated (for example a stitch split in two), numbers can shift. Each clip names the
+// clip it was before (previous_id); move saved counts once to the new ids. Clips with no previous one start empty.
+function migrate(saved) {
+  const version = typeof CLIPS_VERSION === 'undefined' ? null : CLIPS_VERSION;  // older clip lists have none
+  let stored = null;
+  try { stored = localStorage.getItem(VERSION_KEY); } catch (e) { /* storage unavailable */ }
+  if (version === null || stored === version) return saved;
+  const moved = Object.fromEntries(KNOT_CLIPS.filter(c => c.previous_id && saved[c.previous_id])
+                                             .map(c => [c.id, saved[c.previous_id]]));
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(moved));
+    localStorage.setItem(VERSION_KEY, version);
+  } catch (e) { /* storage unavailable */ }
+  return moved;
 }
 
 function entry(id) {
