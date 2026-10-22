@@ -17,9 +17,9 @@ Two summaries, to compare:
 Per pig there are only 4-13 knots, so pigs are always summarised by medians.
 
 Output, in results/sutures/throws/<median|mode>/:
-    knots.csv          one row per knot: pig, system, block, number, throws, knot time, time per throw
+    knots.csv          one row per knot: case, system, block, number, throws, knot time, time per throw
     by_system.csv      most likely values (modes, peaks) and medians per system
-    by_pig.csv         medians per pig
+    by_pig.csv         medians per case
     knot_throws.md     tables, figure link and caption
     figures/knot_throws.png and .pdf   (a) throws per knot, (b) time per throw; no title, caption in the md
 """
@@ -36,7 +36,7 @@ from scipy.stats import gaussian_kde
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from project import (GRID, MUTED, SYSTEM_COLORS, SYSTEM_NAMES, TEXT, pig_order, short_name,  # noqa: E402
+from project import (GRID, MUTED, SYSTEM_COLORS, SYSTEM_NAMES, TEXT, case_id, pig_order,  # noqa: E402
                      system_by_video, use_figure_font)
 
 STITCHES = Path("results/sutures/stitches.csv")
@@ -69,14 +69,14 @@ def knot_table():
     knots = knots.dropna(subset=["throws"]).assign(throws=lambda d: d.throws.astype(int))
     systems = system_by_video()
     knots["system"] = knots.video.map(systems)
-    knots["pig"] = knots.video.map(short_name)
+    knots["case"] = knots.video.map(case_id)
     knots["per_throw_s"] = knots.knot_s / knots.throws
     return knots[knots.system.isin(SYSTEMS)]
 
 
 def by_pig(knots):
     """Medians per pig (too few knots per pig for a stable peak)."""
-    pigs = knots.groupby(["system", "video", "pig"]).agg(
+    pigs = knots.groupby(["system", "video", "case"]).agg(
         knots=("throws", "size"), throws=("throws", "median"), knot_s=("knot_s", "median"),
         per_throw_s=("per_throw_s", "median")).reset_index()
     systems = system_by_video()
@@ -108,7 +108,7 @@ def system_summary(knots):
     rows = []
     for system in SYSTEMS:
         own = knots[knots.system == system]
-        row = {"system": system, "knots": len(own), "pigs": own.pig.nunique(), "throws_mode": own.throws.mode().iloc[0],
+        row = {"system": system, "knots": len(own), "pigs": own.case.nunique(), "throws_mode": own.throws.mode().iloc[0],
                "per_throw_peak_s": density_peaks(own.per_throw_s.to_numpy())[0],
                "knot_peak_s": density_peaks(own.knot_s.to_numpy())[0]}
         for measure in ["throws", "knot_s", "per_throw_s"]:
@@ -220,9 +220,9 @@ SUMMARY_NOTES = {
 
 
 def table_lines(table):
-    lines = ["| pig | system | knots | throws | knot tying (s) | time per throw (s) |", "|---|---|---|---|---|---|"]
+    lines = ["| case | system | knots | throws | knot tying (s) | time per throw (s) |", "|---|---|---|---|---|---|"]
     for r in table.itertuples():
-        cells = [r.pig, SYSTEM_NAMES[r.system], f"{r.knots:.0f}", f"{r.throws:.1f}", f"{r.knot_s:.0f}",
+        cells = [r.case, SYSTEM_NAMES[r.system], f"{r.knots:.0f}", f"{r.throws:.1f}", f"{r.knot_s:.0f}",
                  f"{r.per_throw_s:.0f}"]
         lines.append("| " + " | ".join(cells) + " |")
     return lines
@@ -273,7 +273,7 @@ def markdown(knots, summary, table, figure_path):
     lines = ["# Knot throws", "", "Written by `scripts/knot_throws.py`; re-run it after new counts.", "",
              f"![Knot throws]({figure_path})", "", caption, "", "## Per system", ""]
     lines += system_lines(summary)
-    lines += ["", SUMMARY_NOTES[summary_kind], "", "## Per pig (medians)", ""]
+    lines += ["", SUMMARY_NOTES[summary_kind], "", "## Per case (medians)", ""]
     lines += table_lines(table) + ["", "## Knots by number of throws", ""] + distribution_lines(knots)
     lines += [""] + limitation_lines(knots) + [""]
     (OUT_DIR / "knot_throws.md").write_text("\n".join(lines))
@@ -290,7 +290,7 @@ def main():
     table = by_pig(knots)
     summary = system_summary(knots)
     summary.round(1).to_csv(OUT_DIR / "by_system.csv")
-    knots[["pig", "system", "block", "number", "throws", "knot_s", "per_throw_s", "video"]].round(1).to_csv(
+    knots[["case", "system", "block", "number", "throws", "knot_s", "per_throw_s", "video"]].round(1).to_csv(
         OUT_DIR / "knots.csv", index=False)
     table.round(2).to_csv(OUT_DIR / "by_pig.csv", index=False)
     markdown(knots, summary, table, figure(knots))

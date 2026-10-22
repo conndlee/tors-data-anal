@@ -1,6 +1,6 @@
 # Instrument motion per stitch phase
 
-Written by `scripts/phase_motion.py`. Both instruments summed; joints that are the same kind on both systems. Median (interquartile range) over stitches. 3 mm: 19 stitches, 2 pigs; 8 mm: 39 stitches, 4 pigs. May 29 has no rosbag.
+Written by `scripts/phase_motion.py`. Both instruments summed; joints that are the same kind on both systems. Median (interquartile range) over stitches. 3 mm: 19 stitches, 2 pigs; 8 mm: 39 stitches, 4 pigs. P01 has no rosbag.
 
 ## Absolute (per phase)
 
@@ -32,21 +32,21 @@ Written by `scripts/phase_motion.py`. Both instruments summed; joints that are t
 
 n = phases included; the first-60-s volume leaves out phases shorter than 60 s.
 
-## Per pig, normalised (medians)
+## Per case, normalised (medians)
 
-| pig | phase | duration (s) | Shaft motion | Roll | Wrist pitch + yaw | Grasps | Idle (both still) |
+| case | phase | duration (s) | Shaft motion | Roll | Wrist pitch + yaw | Grasps | Idle (both still) |
 |---|---|---|---|---|---|---|---|
-| Jun 15 · 3 mm | Bite | 200 | 250 | 11 | 19 | 8.3 | 15 |
-| Jun 15 · 3 mm | Knot tying | 145 | 444 | 16 | 24 | 10 | 7.7 |
-| Jun 16 · 3 mm | Bite | 61 | 308 | 13 | 22 | 6.9 | 13 |
-| Jun 16 · 3 mm | Knot tying | 137 | 571 | 15 | 25 | 8.7 | 6.6 |
-| Aug 18 · 8 mm | Bite | 90 | 369 | 20 | 21 | 12 | 9.9 |
-| Aug 18 · 8 mm | Knot tying | 134 | 536 | 17 | 21 | 13 | 8.2 |
-| Aug 19 · 8 mm | Bite | 55 | 344 | 18 | 26 | 12 | 12 |
-| Aug 19 · 8 mm | Knot tying | 106 | 556 | 20 | 33 | 13 | 6.2 |
-| Oct 7 · 8 mm | Bite | 104 | 383 | 23 | 25 | 13 | 13 |
-| Oct 7 · 8 mm | Knot tying | 166 | 459 | 19 | 24 | 10 | 8.1 |
-| Oct 8 · 8 mm | Bite | 65 | 354 | 21 | 20 | 11 | 15 |
-| Oct 8 · 8 mm | Knot tying | 123 | 510 | 17 | 22 | 11 | 9.8 |
+| P02, 3 mm | Bite | 200 | 250 | 11 | 19 | 8.3 | 15 |
+| P02, 3 mm | Knot tying | 145 | 444 | 16 | 24 | 10 | 7.7 |
+| P03, 3 mm | Bite | 61 | 308 | 13 | 22 | 6.9 | 13 |
+| P03, 3 mm | Knot tying | 137 | 571 | 15 | 25 | 8.7 | 6.6 |
+| P04, 8 mm | Bite | 90 | 369 | 20 | 21 | 12 | 9.9 |
+| P04, 8 mm | Knot tying | 134 | 536 | 17 | 21 | 13 | 8.2 |
+| P05, 8 mm | Bite | 55 | 344 | 18 | 26 | 12 | 12 |
+| P05, 8 mm | Knot tying | 106 | 556 | 20 | 33 | 13 | 6.2 |
+| P06, 8 mm | Bite | 104 | 383 | 23 | 25 | 13 | 13 |
+| P06, 8 mm | Knot tying | 166 | 459 | 19 | 24 | 10 | 8.1 |
+| P07, 8 mm | Bite | 65 | 354 | 21 | 20 | 11 | 15 |
+| P07, 8 mm | Knot tying | 123 | 510 | 17 | 22 | 11 | 9.8 |
 
 Still: shaft end slower than 2 mm/s and wrist slower than 0.1 rad/s, for both instruments. Grasps: jaw closing below 0.1 rad after opening above 0.3 rad.

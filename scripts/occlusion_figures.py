@@ -29,7 +29,7 @@ from scipy.stats import gaussian_kde
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from project import GRID, LEFT_EYE, MUTED, SYSTEM_COLORS, TEXT, VIDEO_DIR, use_figure_font  # noqa: E402
+from project import GRID, LEFT_EYE, MUTED, SYSTEM_COLORS, TEXT, VIDEO_DIR, case_id, use_figure_font  # noqa: E402
 from train_tool_seg import MODEL_FILE, SIZE, make_model, normalise  # noqa: E402
 
 use_figure_font()
@@ -47,7 +47,7 @@ COLOR_NAMES = {"3mm": "purple", "8mm": "teal"}
 NAMES = {"3mm": "3 mm", "8mm": "8 mm"}
 EXAMPLES = [  # (system, video, time in s, how it was picked, output file)
     ("8mm", "pig_oct07-2026-10-07_14.31.12", 6462,
-     "picked by eye from Oct 7 frames at 26-27% (per-second values)", "occlusion_example_8mm.png"),
+     "picked by eye from {case} frames at 26-27% (per-second values)", "occlusion_example_8mm.png"),
     ("3mm", "pig_may29-2026-05-29_09.34.18", 6127,
      "picked by eye from 3 mm frames at 10-12% (per-second values)", "occlusion_example_3mm.png"),
     ("3mm", "pig_jun15-2026-06-15_10.14.18", 4828,
@@ -190,7 +190,7 @@ def write_markdown(stats, examples):
             f"**{NAMES[ex['system']]} tools during suturing.** Instrument mask shaded "
             f"({COLOR_NAMES[ex['system']]}); "
             f"{ex['covered']:.0f}% of the image is covered. "
-            f"Source: `{ex['video']}.mp4` at {ex['t']} s, left eye; {ex['picked']}.",
+            f"Source: {case_id(ex['video'])} at {ex['t']} s of video, left eye; {ex['picked'].format(case=case_id(ex['video']))}.",
             "",
         ]
     (FIGURE_DIR / "figures.md").write_text("\n".join(lines))

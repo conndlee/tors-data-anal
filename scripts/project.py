@@ -11,6 +11,7 @@ VIDEO_DIR = Path("data/video")
 DERIVED_DIR = Path("data/derived")
 SYNC_FILE = Path("results/sync/offsets.csv")  # video time = bag time + offset (scripts/sync_video.py)
 SEGMENTS_FILE = Path("results/occlusion/segments.csv")  # which system each video used, and which are main trials
+CASE_FILE = Path("data/case_labels.csv")  # manuscript case IDs (P01-P07, Pilot) per recording key
 LEFT_EYE = "crop=960:1040:0:40"  # ffmpeg crop: x 0-960 is the left window; the top 40 px is its title bar
 
 # Plot text colours (primary, muted, gridlines).
@@ -28,8 +29,19 @@ def pig_tag(video):
     return video.split("_")[1][:5]
 
 
+def case_labels():
+    """{recording key: case ID}, the manuscript's fixed crosswalk ('pig_oct08-2026-10-08_13.19.52' -> 'P07')."""
+    table = pd.read_csv(CASE_FILE)
+    return dict(zip(table.recording_key, table.case_id))
+
+
+def case_id(video):
+    """Case ID shown in figures, tables and captions. Raises KeyError for a recording not in the crosswalk."""
+    return case_labels()[video]
+
+
 def short_name(video):
-    """'pig_oct08-2026-10-08_13.19.52' -> 'Oct 8'."""
+    """'pig_oct08-2026-10-08_13.19.52' -> 'Oct 8'. Only for working tools (knot clips), not for reporting."""
     tag = pig_tag(video)
     return f"{MONTHS.get(tag[:3], tag[:3])} {int(tag[3:])}"
 
@@ -43,8 +55,8 @@ def system_by_video():
 
 
 def pig_order(video, systems):
-    """Sort key: system (3 mm first), then recording date ('pig_may29-2026-05-29_...' -> '2026-05-29...')."""
-    return systems.get(video, "?"), video.split("-", 1)[1]
+    """Sort key: system (3 mm first), then case ID (P01-P07 are in recording order)."""
+    return systems.get(video, "?"), case_id(video)
 
 
 # ---------- plot style ----------

@@ -21,6 +21,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from project import case_id
+
 OCCLUSION_DIR = Path("data/derived/occlusion/video")
 RESULT_DIR = Path("results/occlusion")
 DARK = 20  # mean grey level (0-255); black frames are near 0
@@ -45,7 +47,7 @@ def segment_row(segment):
     lit = frames[frames.brightness >= DARK]
     in_view = lit[lit.occlusion >= IN_VIEW]
     return {
-        "video": segment.video, "system": segment.system, "trial": segment.trial,
+        "video": segment.video, "case": case_id(segment.video), "system": segment.system, "trial": segment.trial,
         "start_s": segment.start_s, "end_s": segment.end_s,
         "frames": len(frames), "dark_dropped": len(frames) - len(lit),
         "share_in_view": round(len(in_view) / max(len(lit), 1), 3),
@@ -74,7 +76,7 @@ def main():
     by_system = system_rows(by_segment)
     by_segment.round(4).to_csv(RESULT_DIR / "summary_by_segment.csv", index=False)
     by_system.round(4).to_csv(RESULT_DIR / "summary_by_system.csv", index=False)
-    columns = ["video", "system", "trial", "frames", "dark_dropped", "share_in_view", "median", "median_in_view"]
+    columns = ["case", "system", "trial", "frames", "dark_dropped", "share_in_view", "median", "median_in_view"]
     print(by_segment[columns].round(3).to_string(index=False), "\n")
     print(by_system.round(3).to_string(index=False))
 

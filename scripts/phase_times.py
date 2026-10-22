@@ -5,7 +5,7 @@ Needs results/sutures/stitches.csv (scripts/suture_times.py).
 Phases per completed stitch:
     bite         stitch start to needle through
     knot tying   needle through to knot tightened
-    assistant    knot tightened to cut (the May 29 outlier is already removed in stitches.csv)
+    assistant    knot tightened to cut (the P01 outlier is already removed in stitches.csv)
 
 The times are skewed (a few bites take over 10 min), so each stitch is shown as a dot with the median and
 interquartile range, rather than a smoothed density whose long tails would flatten the peaks.
@@ -25,7 +25,8 @@ import pandas as pd
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from project import GRID, MUTED, SYSTEM_COLORS, SYSTEM_NAMES, TEXT, system_by_video, use_figure_font  # noqa: E402
+from project import (GRID, MUTED, SYSTEM_COLORS, SYSTEM_NAMES, TEXT, case_id, pig_order, system_by_video,  # noqa: E402
+                     use_figure_font)
 
 STITCHES = Path("results/sutures/stitches.csv")
 OUT_DIR = Path("results/sutures/phase_times")
@@ -106,14 +107,27 @@ def figure(stitches):
 
 # ---------- markdown ----------
 
-def markdown(table, figure_path):
+def excluded_assistant_cases(stitches):
+    """Case IDs whose assistant time is left out as an outlier (assistant_excluded in stitches.csv)."""
+    return ", ".join(sorted(stitches.loc[stitches.assistant_excluded, "video"].map(case_id)))
+
+
+def case_list(stitches, system):
+    """Case IDs of one system in numeric order, e.g. 'P01, P02, P03'."""
+    systems = system_by_video()
+    videos = sorted(stitches.loc[stitches.system == system, "video"].unique(), key=lambda v: pig_order(v, systems))
+    return ", ".join(case_id(v) for v in videos)
+
+
+def markdown(table, figure_path, stitches):
     counts = table.groupby("system")[["n", "pigs"]].max()
     t3, t8 = counts.loc["3mm"], counts.loc["8mm"]
     caption = ("**Stitch phase times, 3 mm vs 8 mm.** (a) Bite: stitch start to needle through. (b) Knot tying: "
                "needle through to knot tightened. (c) Assistant: knot tightened to cut by the surgical assistant. "
                f"Each dot is one completed stitch; boxes show the interquartile range and thick lines the median. "
                f"Purple: 3 mm (up to {t3.n:.0f} stitches, {t3.pigs:.0f} pigs). Teal: 8 mm ({t8.n:.0f} stitches, "
-               f"{t8.pigs:.0f} pigs). One 3 mm assistant time (May 29) is left out as an outlier.")
+               f"{t8.pigs:.0f} pigs). One 3 mm assistant time ({excluded_assistant_cases(stitches)}) is left out as an "
+               "outlier.")
     lines = ["# Stitch phase times", "", "Written by `scripts/phase_times.py`; re-run it after new annotations.", "",
              f"![Stitch phase times]({figure_path})", "", caption, "", "## Median (IQR), minutes", "",
              "| phase | 3 mm | 8 mm |", "|---|---|---|"]
@@ -123,8 +137,8 @@ def markdown(table, figure_path):
             r = table[(table.system == system) & (table.phase == name)].iloc[0]
             cells.append(f"{r.median_s / 60:.1f} ({r.q1_s / 60:.1f}-{r.q3_s / 60:.1f}), n = {r.n:.0f}")
         lines.append(f"| {name} | " + " | ".join(cells) + " |")
-    lines += ["", "All completed stitches of a system pooled. Pigs: 3 mm May 29, Jun 15, Jun 16; "
-              "8 mm Aug 18, Aug 19, Oct 7, Oct 8.", ""]
+    lines += ["", f"All completed stitches of a system pooled. Cases: 3 mm {case_list(stitches, '3mm')}; "
+              f"8 mm {case_list(stitches, '8mm')}.", ""]
     (OUT_DIR / "phase_times.md").write_text("\n".join(lines))
 
 
@@ -133,7 +147,7 @@ def main():
     stitches = stitch_table()
     table = summary(stitches)
     table.round(1).to_csv(OUT_DIR / "by_system.csv", index=False)
-    markdown(table, figure(stitches))
+    markdown(table, figure(stitches), stitches)
     print(table.round(0).to_string(index=False))
 
 

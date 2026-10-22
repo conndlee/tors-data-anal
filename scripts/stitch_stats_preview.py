@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 
 import suture_times as st  # noqa: E402
-from project import DERIVED_DIR, GRID, MUTED, SYNC_FILE, pig_order, short_name, system_by_video  # noqa: E402
+from project import DERIVED_DIR, GRID, MUTED, SYNC_FILE, case_id, pig_order, system_by_video  # noqa: E402
 
 OUT_DIR = Path("results/sutures/preview")
 ARMS = ["psm1", "psm2"]
@@ -111,7 +111,7 @@ def table_rows(table, means):
     rows = []
     for system in sorted(table.system.unique()):
         for r in table[table.system == system].itertuples():
-            rows.append((f"{short_name(r.video)}, {system.replace('mm', ' mm')}", r._asdict(), False))
+            rows.append((f"{case_id(r.video)}, {system.replace('mm', ' mm')}", r._asdict(), False))
         mean = means[means.system == system].iloc[0].to_dict()
         rows.append((f"Mean, {system.replace('mm', ' mm')}", mean, True))
     return rows
@@ -137,7 +137,7 @@ def table_page(pdf, table, means):
     fig, ax = plt.subplots(figsize=(st.FIG_WIDTH, 0.3 * len(rows) + 0.9))
     ax.axis("off")
     cell_text = [[label] + [format_value(values.get(k), fmt) for k, _, fmt in COLUMNS] for label, values, _ in rows]
-    grid = ax.table(cellText=cell_text, colLabels=["Pig"] + [h for _, h, _ in COLUMNS], loc="upper center",
+    grid = ax.table(cellText=cell_text, colLabels=["Case"] + [h for _, h, _ in COLUMNS], loc="upper center",
                     cellLoc="center", colLoc="center")
     grid.auto_set_font_size(False)
     grid.set_fontsize(8)
@@ -147,8 +147,8 @@ def table_page(pdf, table, means):
     notes = ("Knots tied: stitches with a completed knot. Stitch: needle first touches tissue to knot tightened. "
              "Knot tying: needle through to knot tightened. Assistant: knot tightened to the assistant's cut. "
              "Force (estimate, preliminary): insertion-axis joint effort minus a 60 s rolling median, mean and 95th "
-             "percentile over each stitch, larger of the two arms; no force sensor. May 29 (3 mm) is excluded. "
-             "Bold rows: mean of the pigs in each system.")
+             f"percentile over each stitch, larger of the two arms; no force sensor. {case_id(TEST_EXCLUDED_VIDEO)} (3 mm) "
+             "is excluded. Bold rows: mean of the cases in each system.")
     fig.text(0.02, -0.02, notes, fontsize=7, color=MUTED, wrap=True, va="top")
     pdf.savefig(fig, bbox_inches="tight")
     fig.savefig(OUT_DIR / "stitch_stats_table.png", dpi=200, bbox_inches="tight")

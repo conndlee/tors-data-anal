@@ -37,7 +37,7 @@ import matplotlib.patches  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import matplotlib.ticker  # noqa: E402
 
-from project import (GRID, MUTED, SEGMENTS_FILE, TEXT, pig_order, short_name,  # noqa: E402
+from project import (GRID, MUTED, SEGMENTS_FILE, TEXT, case_id, pig_order,  # noqa: E402
                      system_by_video, use_figure_font)
 
 use_figure_font()
@@ -253,7 +253,7 @@ def overview_figure(stitches):
         origin = own.start_s.min()
         for s in own.itertuples():
             draw_segments(ax, stitch_segments(s, origin), row, 0.5)
-    labels = [f"{short_name(v)}, {systems.get(v, '?').replace('mm', ' mm')}" for v in reversed(videos)]
+    labels = [f"{case_id(v)}, {systems.get(v, '?').replace('mm', ' mm')}" for v in reversed(videos)]
     ax.set_yticks(range(len(videos)), labels)
     ax.set_ylim(-0.6, len(videos) - 0.4)
     last = stitches.cut_s.fillna(stitches.end_s) - stitches.groupby("video").start_s.transform("min")
@@ -297,7 +297,7 @@ def stats_rows(stitches, systems):
 
 def row_label(row):
     system = row["system"].replace("mm", " mm")
-    return f"Mean, {system}" if row["kind"] == "mean" else f"{short_name(row['video'])}, {system}"
+    return f"Mean, {system}" if row["kind"] == "mean" else f"{case_id(row['video'])}, {system}"
 
 
 def draw_stats_table(ax, rows, ys):
@@ -387,7 +387,7 @@ def procedure_figure(events_by_video, stitches, procedures):
         p = procedures.set_index("video").loc[video]
         draw_procedure_row(ax, events_by_video[video], stitches[stitches.video == video], row, p.start_s)
         ax.text(p.total_min + 1, row, f"{p.total_min:.0f} min", va="center", fontsize=8, color=TEXT)
-    ax.set_yticks(range(len(rows)), [f"{short_name(v)}, {systems.get(v, '?').replace('mm', ' mm')}" for v in rows])
+    ax.set_yticks(range(len(rows)), [f"{case_id(v)}, {systems.get(v, '?').replace('mm', ' mm')}" for v in rows])
     ax.set_ylim(-0.6, len(rows) - 0.4)
     ax.set_xlim(-1, procedures.total_min.max() + 12)
     draw_group_lines(ax, rows, systems)
@@ -403,15 +403,15 @@ def procedure_figure(events_by_video, stitches, procedures):
 
 def procedure_lines(procedures, figure):
     systems = system_by_video()
-    table = procedures.assign(pig=procedures.video.map(short_name),
+    table = procedures.assign(case=procedures.video.map(case_id),
                               system=procedures.video.map(lambda v: systems.get(v, "?").replace("mm", " mm")))
     table = table.iloc[sorted(range(len(table)), key=lambda i: pig_order(table.video.iloc[i], systems))]
     per_system = table.groupby("system")[["total_min", "dissection_min", "suturing_min", "stitches"]].median().reset_index()
     lines = ["## Procedure time", "", f"![Procedure time]({figure})", "",
-             "**Total procedure time.** One row per pig, from the start of dissection (0) to the cut of the last "
+             "**Total procedure time.** One row per case, from the start of dissection (0) to the cut of the last "
              "stitch; the number is the total in minutes. Shaded bars: annotated phases. Purple bars: stitches, "
              "from the needle first touching tissue to the assistant's cut.", ""]
-    lines += markdown_table(table, ["pig", "system", "total_min", "dissection_min", "suturing_min", "stitches"],
+    lines += markdown_table(table, ["case", "system", "total_min", "dissection_min", "suturing_min", "stitches"],
                             {"total_min": "total (min)", "dissection_min": "dissection (min)",
                              "suturing_min": "first stitch to last cut (min)"})
     lines += ["", "Median per system:", ""]
@@ -419,7 +419,7 @@ def procedure_lines(procedures, figure):
                             {"total_min": "total (min)", "dissection_min": "dissection (min)",
                              "suturing_min": "first stitch to last cut (min)"})
     missing = table[~table.dissection_marked]
-    lines += [""] + [f"- {r.pig}: no dissection marked; total starts at the first block." for r in missing.itertuples()]
+    lines += [""] + [f"- {r.case}: no dissection marked; total starts at the first block." for r in missing.itertuples()]
     return lines + [""]
 
 
@@ -444,7 +444,7 @@ def format_cell(value):
 
 def stitch_checks(s):
     """Problems with one completed stitch, as messages."""
-    where = f"{short_name(s.video)}, {s.block.replace('_', ' ')} stitch {s.number}"
+    where = f"{case_id(s.video)}, {s.block.replace('_', ' ')} stitch {s.number}"
     checks = [(s.needle_marks != 1, f"{s.needle_marks} needle_through marks; the last one is used."),
               (np.isnan(s.cut_s) and not s.assistant_excluded, "no cut."),
               (s.assistant_excluded, "assistant time left out as an outlier."),
@@ -453,14 +453,28 @@ def stitch_checks(s):
 
 
 def check_lines(stitches, blocks):
-    lines = [f"- {short_name(s.video)}, {s.block.replace('_', ' ')}: failed attempt at {s.start_s:.0f} s "
+    lines = [f"- {case_id(s.video)}, {s.block.replace('_', ' ')}: failed attempt at {s.start_s:.0f} s "
              f"({s.attempt_s:.0f} s; no needle through, no cut). Left out of stitch times."
              for s in stitches[stitches.failed].itertuples()]
     for s in stitches[~stitches.failed].itertuples():
         lines += stitch_checks(s)
-    lines += [f"- {short_name(b.video)}, {b.block.replace('_', ' ')}: block has no stitches marked."
+    lines += [f"- {case_id(b.video)}, {b.block.replace('_', ' ')}: block has no stitches marked."
               for b in blocks[blocks.stitches == 0].itertuples()]
+    lines += repeated_block_lines(blocks)
     return lines or ["- None."]
+
+
+def repeated_block_lines(blocks):
+    """Blocks marked more than once in a video. Stitches are matched to blocks by name, so each span's
+    stitch count and time stitching (%) include the stitches of all spans with that name."""
+    counts = blocks.groupby(["video", "block"]).size()
+    return [f"- {case_id(video)}, {block.replace('_', ' ')}: block marked {n} times; its stitch count and time "
+            f"stitching (%) include the stitches of every span." for (video, block), n in counts[counts > 1].items()]
+
+
+def with_case(table):
+    """The table with a case ID column after the recording key."""
+    return table.assign(case=table.video.map(case_id))[["video", "case"] + [c for c in table.columns if c != "video"]]
 
 
 LONG_ASSISTANT = 300  # s; a longer knot-to-cut time is flagged for checking
@@ -472,16 +486,18 @@ def write_markdown(stitches, blocks, summary, figures, overview, overview_stats,
     lines = ["# Suture timing (draft)", "",
              "Written by `scripts/suture_times.py` from `results/annotations/`; re-run it after new annotations.", ""]
     lines += procedure
-    lines += ["## All pigs", "", f"![Overview]({overview})", "",
-             f"**Stitch timelines, 3 mm vs 8 mm.** One row per pig, aligned at its first stitch. Each bar is one "
+    lines += ["## All cases", "", f"![Overview]({overview})", "",
+             f"**Stitch timelines, 3 mm vs 8 mm.** One row per case, aligned at its first stitch. Each bar is one "
              f"stitch, split into {STITCH_KEY}.", "",
-             "## All pigs, with numbers", "", f"![Overview with numbers]({overview_stats})", "",
-             "**Stitch timelines with per-pig numbers.** Left: as above. Right: Stitches, number of stitches; "
+             "## All cases, with numbers", "", f"![Overview with numbers]({overview_stats})", "",
+             "**Stitch timelines with per-case numbers.** Left: as above. Right: Stitches, number of stitches; "
              "Stitch, mean stitch time (needle first touches tissue to knot tightened); Gap, mean time from the end "
              "of one stitch (knot tightened) to the start of the next; Span, first stitch to last cut. "
-             "Bold rows: mean of the pigs in each system.", ""]
-    for video, figure in figures.items():
-        lines += [f"## {short_name(video)} (`{video}`)", "", f"![Timeline]({figure})", "",
+             "Bold rows: mean of the cases in each system.", ""]
+    systems = system_by_video()
+    for video in sorted(figures, key=lambda v: pig_order(v, systems)):
+        figure = figures[video]
+        lines += [f"## {case_id(video)}", "", f"![Timeline]({figure})", "",
                   f"**Procedure timeline.** Brackets above: annotated phases. Each bar is one stitch, split into "
                   f"{STITCH_KEY}. Brackets below: each whole stitch, from the needle first touching tissue to the "
                   f"assistant's cut, numbered within each phase. (Stitch time in the tables is start to knot tightened.)", ""]
@@ -489,10 +505,10 @@ def write_markdown(stitches, blocks, summary, figures, overview, overview_stats,
     lines += markdown_table(summary, ["block", "measure", "n", "mean_s", "sd_s", "median_s", "min_s", "max_s"],
                             {"mean_s": "mean", "sd_s": "SD", "median_s": "median", "min_s": "min", "max_s": "max"})
     lines += ["", "## Blocks", ""]
-    lines += markdown_table(blocks, ["video", "block", "duration_s", "stitches", "stitching_pct"],
+    lines += markdown_table(with_case(blocks), ["case", "block", "duration_s", "stitches", "stitching_pct"],
                             {"duration_s": "duration (s)", "stitching_pct": "time stitching (%)"})
     lines += ["", "## Stitches (seconds)", ""]
-    lines += markdown_table(stitches, ["block", "number", "stitch_s", "bite_s", "knot_s", "assistant_s", "gap_s"],
+    lines += markdown_table(with_case(stitches), ["case", "block", "number", "stitch_s", "bite_s", "knot_s", "assistant_s", "gap_s"],
                             {"stitch_s": "stitch", "bite_s": "bite", "knot_s": "knot tying", "assistant_s": "assistant",
                              "gap_s": "gap to next"})
     lines += ["", "## Annotation checks", ""] + check_lines(stitches, blocks) + [""]
@@ -527,11 +543,11 @@ def main():
         procedure_rows.append(procedure_row(events, stitches))
     stitches, blocks = pd.concat(all_stitches), pd.concat(all_blocks)
     procedures = pd.DataFrame(procedure_rows)
-    procedures.round(2).to_csv(OUT_DIR / "procedures.csv", index=False)
+    with_case(procedures).round(2).to_csv(OUT_DIR / "procedures.csv", index=False)
     procedure = procedure_lines(procedures, procedure_figure(events_by_video, stitches, procedures))
     summary = summary_table(stitches)
-    stitches.round(2).to_csv(OUT_DIR / "stitches.csv", index=False)
-    blocks.round(3).to_csv(OUT_DIR / "blocks.csv", index=False)
+    with_case(stitches).round(2).to_csv(OUT_DIR / "stitches.csv", index=False)
+    with_case(blocks).round(3).to_csv(OUT_DIR / "blocks.csv", index=False)
     summary.round(2).to_csv(OUT_DIR / "summary.csv", index=False)
     write_markdown(stitches, blocks, summary, figures, overview_figure(stitches), overview_stats_figure(stitches),
                    procedure)

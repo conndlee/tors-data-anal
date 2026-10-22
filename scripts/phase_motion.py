@@ -24,7 +24,7 @@ Signals are averaged into BIN_S bins first, so sensor jitter is not counted as m
 
 Output, in results/sutures/motion/:
     phases.csv     one row per stitch x phase
-    by_pig.csv     medians per pig and phase
+    by_pig.csv     medians per case and phase
     motion.md      per-system median (IQR) tables, absolute and per minute
 """
 
@@ -34,9 +34,10 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull, QhullError
 
-from project import DERIVED_DIR, SYNC_FILE, SYSTEM_NAMES, pig_order, short_name, system_by_video
+from project import DERIVED_DIR, SYNC_FILE, SYSTEM_NAMES, case_id, pig_order, system_by_video
 
 STITCHES = Path("results/sutures/stitches.csv")
+NO_ROSBAG = "pig_may29-2026-05-29_09.34.18"  # recording without a rosbag (P01)
 OUT_DIR = Path("results/sutures/motion")
 ARMS = ["psm1", "psm2"]
 SYSTEMS = ["3mm", "8mm"]
@@ -162,7 +163,7 @@ def phase_table():
             rows += phase_rows(own, video, sync.loc[video, "bag"], sync.loc[video, "offset"], systems[video])
     table = pd.DataFrame(rows)
     table["system"] = table.video.map(system_by_video())
-    table["pig"] = table.video.map(short_name)
+    table["case"] = table.video.map(case_id)
     return normalise(table[table.system.isin(SYSTEMS)])
 
 
@@ -208,34 +209,34 @@ def workspace_lines(table):
 
 def by_pig(table):
     columns = ["duration_s"] + [m + suffix for m in MEASURES for suffix in ("", "_per_min")] + list(WORKSPACE)
-    pigs = table.groupby(["system", "video", "pig", "phase"])[columns].median().reset_index()
+    pigs = table.groupby(["system", "video", "case", "phase"])[columns].median().reset_index()
     systems = system_by_video()
     order = sorted(range(len(pigs)), key=lambda i: (pig_order(pigs.video.iloc[i], systems), pigs.phase.iloc[i]))
     return pigs.iloc[order]
 
 
 def pig_lines(pigs, suffix):
-    header = "| pig | phase | duration (s) | " + " | ".join(MEASURES[m][0] for m in MEASURES) + " |"
+    header = "| case | phase | duration (s) | " + " | ".join(MEASURES[m][0] for m in MEASURES) + " |"
     lines = [header, "|" + "---|" * (3 + len(MEASURES))]
     for r in pigs.itertuples():
         values = [getattr(r, m + suffix) for m in MEASURES]
         cells = [f"{v:.1f}" if abs(v) < 10 else f"{v:.0f}" for v in values]
-        lines.append(f"| {r.pig} · {SYSTEM_NAMES[r.system]} | {PHASES[r.phase]} | {r.duration_s:.0f} | " + " | ".join(cells) + " |")
+        lines.append(f"| {r.case}, {SYSTEM_NAMES[r.system]} | {PHASES[r.phase]} | {r.duration_s:.0f} | " + " | ".join(cells) + " |")
     return lines
 
 
 def markdown(table, pigs):
-    counts = table[table.phase == "bite"].groupby("system").agg(stitches=("pig", "size"), pigs=("pig", "nunique"))
+    counts = table[table.phase == "bite"].groupby("system").agg(stitches=("case", "size"), pigs=("case", "nunique"))
     lines = ["# Instrument motion per stitch phase", "",
              "Written by `scripts/phase_motion.py`. Both instruments summed; joints that are the same kind on both "
              "systems. Median (interquartile range) over stitches. " +
              "; ".join(f"{SYSTEM_NAMES[s]}: {r.stitches} stitches, {r.pigs} pigs" for s, r in counts.iterrows()) +
-             ". May 29 has no rosbag.", "",
+             f". {case_id(NO_ROSBAG)} has no rosbag.", "",
              "## Absolute (per phase)", ""] + system_lines(table, "")
     lines += ["", "## Normalised by phase duration (per minute; idle as % of the phase)", ""] + system_lines(table, "_per_min")
     lines += ["", "## Workspace (per instrument; volumes of both instruments added)", ""] + workspace_lines(table)
     lines += ["", f"n = phases included; the first-{WORKSPACE_S}-s volume leaves out phases shorter than {WORKSPACE_S} s.",
-              "", "## Per pig, normalised (medians)", ""] + pig_lines(pigs, "_per_min")
+              "", "## Per case, normalised (medians)", ""] + pig_lines(pigs, "_per_min")
     lines += ["", f"Still: shaft end slower than {STILL_MM_S} mm/s and wrist slower than {STILL_RAD_S} rad/s, for both "
               f"instruments. Grasps: jaw closing below {JAW_CLOSED} rad after opening above {JAW_OPEN} rad.", ""]
     (OUT_DIR / "motion.md").write_text("\n".join(lines))

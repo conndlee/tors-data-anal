@@ -153,8 +153,8 @@ def caption(stitches, knots):
             f"a probability density (Gaussian kernel {kt.SMOOTHING_S} s wide; area under each curve is 1); triangles "
             f"mark the main peak ({peaks['3mm']:.0f} s for 3 mm, {peaks['8mm']:.0f} s for 8 mm). Purple: 3 mm "
             f"({n['3mm'][0]} stitches, {n['3mm'][2]} knots counted, {n['3mm'][1]} pigs). Teal: 8 mm ({n['8mm'][0]} "
-            f"stitches, {n['8mm'][2]} knots counted, {n['8mm'][1]} pigs). One 3 mm assistant time (May 29) is left "
-            f"out as an outlier.")
+            f"stitches, {n['8mm'][2]} knots counted, {n['8mm'][1]} pigs). One 3 mm assistant time "
+            f"({pt.excluded_assistant_cases(stitches)}) is left out as an outlier.")
 
 
 def main():

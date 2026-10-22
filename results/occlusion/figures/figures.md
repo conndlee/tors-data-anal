@@ -14,14 +14,14 @@ Vector version: [occlusion_distribution.pdf](occlusion_distribution.pdf)
 
 ![8 mm example](occlusion_example_8mm.png)
 
-**8 mm tools during suturing.** Instrument mask shaded (teal); 30% of the image is covered. Source: `pig_oct07-2026-10-07_14.31.12.mp4` at 6462 s, left eye; picked by eye from Oct 7 frames at 26-27% (per-second values).
+**8 mm tools during suturing.** Instrument mask shaded (teal); 30% of the image is covered. Source: P06 at 6462 s of video, left eye; picked by eye from P06 frames at 26-27% (per-second values).
 
 ![3 mm example](occlusion_example_3mm.png)
 
-**3 mm tools during suturing.** Instrument mask shaded (purple); 11% of the image is covered. Source: `pig_may29-2026-05-29_09.34.18.mp4` at 6127 s, left eye; picked by eye from 3 mm frames at 10-12% (per-second values).
+**3 mm tools during suturing.** Instrument mask shaded (purple); 11% of the image is covered. Source: P01 at 6127 s of video, left eye; picked by eye from 3 mm frames at 10-12% (per-second values).
 
 ## Backup example
 
 ![3 mm example](occlusion_example_3mm_backup.png)
 
-**3 mm tools during suturing.** Instrument mask shaded (purple); 10% of the image is covered. Source: `pig_jun15-2026-06-15_10.14.18.mp4` at 4828 s, left eye; backup for the 3 mm example; picked by eye from 3 mm frames at 10-12%.
+**3 mm tools during suturing.** Instrument mask shaded (purple); 10% of the image is covered. Source: P02 at 4828 s of video, left eye; backup for the 3 mm example; picked by eye from 3 mm frames at 10-12%.

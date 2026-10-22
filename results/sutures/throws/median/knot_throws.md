@@ -15,17 +15,17 @@ Written by `scripts/knot_throws.py`; re-run it after new counts.
 
 Median (interquartile range). All knots of a system are pooled.
 
-## Per pig (medians)
+## Per case (medians)
 
-| pig | system | knots | throws | knot tying (s) | time per throw (s) |
+| case | system | knots | throws | knot tying (s) | time per throw (s) |
 |---|---|---|---|---|---|
-| May 29 | 3 mm | 4 | 2.0 | 233 | 103 |
-| Jun 15 | 3 mm | 6 | 2.5 | 145 | 60 |
-| Jun 16 | 3 mm | 13 | 3.0 | 137 | 48 |
-| Aug 18 | 8 mm | 7 | 3.0 | 134 | 50 |
-| Aug 19 | 8 mm | 13 | 3.0 | 106 | 36 |
-| Oct 7 | 8 mm | 8 | 3.0 | 166 | 55 |
-| Oct 8 | 8 mm | 11 | 3.0 | 123 | 44 |
+| P01 | 3 mm | 4 | 2.0 | 233 | 103 |
+| P02 | 3 mm | 6 | 2.5 | 145 | 60 |
+| P03 | 3 mm | 13 | 3.0 | 137 | 48 |
+| P04 | 8 mm | 7 | 3.0 | 134 | 50 |
+| P05 | 8 mm | 13 | 3.0 | 106 | 36 |
+| P06 | 8 mm | 8 | 3.0 | 166 | 55 |
+| P07 | 8 mm | 11 | 3.0 | 123 | 44 |
 
 ## Knots by number of throws
 
