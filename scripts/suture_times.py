@@ -38,9 +38,9 @@ import matplotlib.pyplot as plt  # noqa: E402
 import matplotlib.ticker  # noqa: E402
 
 from project import (GRID, MUTED, SEGMENTS_FILE, TEXT, pig_order, short_name,  # noqa: E402
-                     system_by_video, use_journal_font)
+                     system_by_video, use_figure_font)
 
-use_journal_font()
+use_figure_font()
 
 ANNOTATION_DIR = Path("results/annotations")
 OUT_DIR = Path("results/sutures")
@@ -222,7 +222,7 @@ def timeline_figure(events, stitches, video):
     for s in stitches.itertuples():
         draw_segments(ax, stitch_segments(s), lane, STITCH_HEIGHT)
         whole_stitch_end = s.end_s if np.isnan(s.cut_s) else s.cut_s  # bracket includes the assistant's cut
-        label = "×" if s.failed else str(s.number)
+        label = r"$\times$" if s.failed else str(s.number)
         draw_bracket(ax, minutes(s.start_s), minutes(whole_stitch_end), lane - STITCH_HEIGHT / 2 - 0.06, label, 1, 7)
     for e in events[events.event.isin(PHASE_EVENTS)].itertuples():
         label = e.event.replace("_", " ")
@@ -253,7 +253,7 @@ def overview_figure(stitches):
         origin = own.start_s.min()
         for s in own.itertuples():
             draw_segments(ax, stitch_segments(s, origin), row, 0.5)
-    labels = [f"{short_name(v)} · {systems.get(v, '?').replace('mm', ' mm')}" for v in reversed(videos)]
+    labels = [f"{short_name(v)}, {systems.get(v, '?').replace('mm', ' mm')}" for v in reversed(videos)]
     ax.set_yticks(range(len(videos)), labels)
     ax.set_ylim(-0.6, len(videos) - 0.4)
     last = stitches.cut_s.fillna(stitches.end_s) - stitches.groupby("video").start_s.transform("min")
@@ -297,7 +297,7 @@ def stats_rows(stitches, systems):
 
 def row_label(row):
     system = row["system"].replace("mm", " mm")
-    return f"Mean, {system}" if row["kind"] == "mean" else f"{short_name(row['video'])} · {system}"
+    return f"Mean, {system}" if row["kind"] == "mean" else f"{short_name(row['video'])}, {system}"
 
 
 def draw_stats_table(ax, rows, ys):
@@ -387,7 +387,7 @@ def procedure_figure(events_by_video, stitches, procedures):
         p = procedures.set_index("video").loc[video]
         draw_procedure_row(ax, events_by_video[video], stitches[stitches.video == video], row, p.start_s)
         ax.text(p.total_min + 1, row, f"{p.total_min:.0f} min", va="center", fontsize=8, color=TEXT)
-    ax.set_yticks(range(len(rows)), [f"{short_name(v)} · {systems.get(v, '?').replace('mm', ' mm')}" for v in rows])
+    ax.set_yticks(range(len(rows)), [f"{short_name(v)}, {systems.get(v, '?').replace('mm', ' mm')}" for v in rows])
     ax.set_ylim(-0.6, len(rows) - 0.4)
     ax.set_xlim(-1, procedures.total_min.max() + 12)
     draw_group_lines(ax, rows, systems)

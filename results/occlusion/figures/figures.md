@@ -6,7 +6,7 @@ Written by `scripts/occlusion_figures.py`; re-run it to update the images and nu
 
 ![Occlusion distribution](occlusion_distribution.png)
 
-**Instrument occlusion of the camera view, 3 mm vs 8 mm tools.** Share of the left-eye camera image covered by the robotic instruments, per video frame (1 frame per second, frames with instruments in view), smoothed with a Gaussian kernel 1.5 points wide. Purple: 3 mm (3 pigs, 28,822 frames). Teal: 8 mm (4 pigs, 21,102 frames). Dashed lines: medians, 11.0% (3 mm) and 25.1% (8 mm). Median of the per-pig medians: 3 mm 10.4% (range 10.2-11.3%), 8 mm 23.9% (range 22.9-26.5%). Instruments were segmented with a DeepLabV3 model trained on 120 hand-labelled frames.
+**Instrument occlusion of the camera view, 3 mm vs 8 mm tools.** Share of the left-eye camera image covered by the robotic instruments, per video frame (1 frame per second, frames with instruments in view), shown as a probability density (Gaussian kernel 1.5 points wide; the area under each curve is 1). Purple: 3 mm (3 pigs, 28,822 frames). Teal: 8 mm (4 pigs, 21,102 frames). Dashed lines: medians, 11.0% (3 mm) and 25.1% (8 mm). Median of the per-pig medians: 3 mm 10.4% (range 10.2-11.3%), 8 mm 23.9% (range 22.9-26.5%). Instruments were segmented with a DeepLabV3 model trained on 120 hand-labelled frames.
 
 Vector version: [occlusion_distribution.pdf](occlusion_distribution.pdf)
 

@@ -29,8 +29,10 @@ from scipy.stats import gaussian_kde
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from project import GRID, LEFT_EYE, MUTED, TEXT, VIDEO_DIR  # noqa: E402
+from project import GRID, LEFT_EYE, MUTED, SYSTEM_COLORS, TEXT, VIDEO_DIR, use_figure_font  # noqa: E402
 from train_tool_seg import MODEL_FILE, SIZE, make_model, normalise  # noqa: E402
+
+use_figure_font()
 
 OCCLUSION_DIR = Path("data/derived/occlusion/video")
 RESULT_DIR = Path("results/occlusion")
@@ -38,9 +40,9 @@ FIGURE_DIR = RESULT_DIR / "figures"
 DARK = 20
 IN_VIEW = 1  # % of the image
 SMOOTHING = 1.5  # points of occlusion; kernel width of the smoothed distribution
-# 3 mm in the suture-figure purple (#842996), 8 mm in teal (#2a9d8f). The masks in the example images use
-# the same colours, so plot and images match; teal stays visible on the grey metal of the 8 mm instruments.
-COLORS = {"3mm": "#842996", "8mm": "#2a9d8f"}
+# 3 mm purple, 8 mm teal (project.SYSTEM_COLORS). The masks in the example images use the same colours,
+# so plot and images match; teal stays visible on the grey metal of the 8 mm instruments.
+COLORS = SYSTEM_COLORS
 COLOR_NAMES = {"3mm": "purple", "8mm": "teal"}
 NAMES = {"3mm": "3 mm", "8mm": "8 mm"}
 EXAMPLES = [  # (system, video, time in s, how it was picked, output file)
@@ -76,10 +78,10 @@ def style_axes(ax):
     ax.set_axisbelow(True)
 
 
-def smoothed_share(values, grid):
-    """Gaussian kernel density with a fixed width of SMOOTHING points, as % of frames per 1-point bin."""
+def smoothed_density(values, grid):
+    """Gaussian kernel density with a fixed width of SMOOTHING points (per percentage point; area = 1)."""
     kde = gaussian_kde(values, bw_method=SMOOTHING / values.std(ddof=1))
-    return kde(grid) * 100
+    return kde(grid)
 
 
 def distribution_figure():
@@ -89,7 +91,7 @@ def distribution_figure():
     fig, ax = plt.subplots(figsize=(7, 3.4))
     stats = {}
     for system in sorted(values):
-        share = smoothed_share(values[system].to_numpy(), grid)
+        share = smoothed_density(values[system].to_numpy(), grid)
         ax.fill_between(grid, share, color=COLORS[system], alpha=0.12, linewidth=0)
         ax.plot(grid, share, color=COLORS[system], linewidth=2, label=NAMES[system])
         median = values[system].median()
@@ -98,7 +100,7 @@ def distribution_figure():
     style_axes(ax)
     ax.set_xlim(0, 60)
     ax.set_xlabel("Share of the camera image covered by instruments (%)", color=TEXT, fontsize=10)
-    ax.set_ylabel("Share of frames (%)", color=TEXT, fontsize=10)
+    ax.set_ylabel("Density (per % of image)", color=TEXT, fontsize=10)
     ax.legend(frameon=False, fontsize=9, loc="upper right", labelcolor=TEXT)
     for suffix in ["png", "pdf"]:
         fig.savefig(FIGURE_DIR / f"occlusion_distribution.{suffix}", dpi=200, bbox_inches="tight")
@@ -166,8 +168,8 @@ def write_markdown(stats, examples):
         "",
         f"**Instrument occlusion of the camera view, 3 mm vs 8 mm tools.** "
         f"Share of the left-eye camera image covered by the robotic instruments, per video frame "
-        f"(1 frame per second, frames with instruments in view), smoothed with a Gaussian kernel "
-        f"{SMOOTHING} points wide. "
+        f"(1 frame per second, frames with instruments in view), shown as a probability density "
+        f"(Gaussian kernel {SMOOTHING} points wide; the area under each curve is 1). "
         f"Purple: 3 mm ({s3['pigs']} pigs, {s3['frames']:,} frames). "
         f"Teal: 8 mm ({s8['pigs']} pigs, {s8['frames']:,} frames). "
         f"Dashed lines: medians, {s3['median']:.1f}% (3 mm) and {s8['median']:.1f}% (8 mm). "

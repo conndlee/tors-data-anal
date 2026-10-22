@@ -37,7 +37,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from project import (GRID, MUTED, SYSTEM_COLORS, SYSTEM_NAMES, TEXT, pig_order, short_name,  # noqa: E402
-                     system_by_video, use_journal_font)
+                     system_by_video, use_figure_font)
 
 STITCHES = Path("results/sutures/stitches.csv")
 COUNTS = Path("results/sutures/knot_throws.csv")
@@ -51,7 +51,7 @@ SMOOTHING_S = 8  # s, kernel width of the smoothed time distributions
 PEAK_PROMINENCE = 0.2  # a secondary peak must rise this share of the main peak above its surroundings
 FIG_WIDTH = 7
 
-use_journal_font()
+use_figure_font()
 
 
 # ---------- data ----------

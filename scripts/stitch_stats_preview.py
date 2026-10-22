@@ -111,14 +111,14 @@ def table_rows(table, means):
     rows = []
     for system in sorted(table.system.unique()):
         for r in table[table.system == system].itertuples():
-            rows.append((f"{short_name(r.video)} · {system.replace('mm', ' mm')}", r._asdict(), False))
+            rows.append((f"{short_name(r.video)}, {system.replace('mm', ' mm')}", r._asdict(), False))
         mean = means[means.system == system].iloc[0].to_dict()
         rows.append((f"Mean, {system.replace('mm', ' mm')}", mean, True))
     return rows
 
 
 def format_value(value, fmt):
-    return "–" if value is None or (isinstance(value, float) and np.isnan(value)) else fmt.format(value)
+    return r"$-$" if value is None or (isinstance(value, float) and np.isnan(value)) else fmt.format(value)
 
 
 def style_cell(cell, row, col, is_mean):

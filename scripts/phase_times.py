@@ -25,7 +25,7 @@ import pandas as pd
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-from project import GRID, MUTED, SYSTEM_COLORS, SYSTEM_NAMES, TEXT, system_by_video, use_journal_font  # noqa: E402
+from project import GRID, MUTED, SYSTEM_COLORS, SYSTEM_NAMES, TEXT, system_by_video, use_figure_font  # noqa: E402
 
 STITCHES = Path("results/sutures/stitches.csv")
 OUT_DIR = Path("results/sutures/phase_times")
@@ -36,7 +36,7 @@ BOX_WIDTH = 0.5
 FIG_WIDTH = 7
 SEED = 0
 
-use_journal_font()
+use_figure_font()
 
 
 def stitch_table():
