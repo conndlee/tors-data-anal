@@ -16,6 +16,9 @@ LEFT_EYE = "crop=960:1040:0:40"  # ffmpeg crop: x 0-960 is the left window; the 
 # Plot text colours (primary, muted, gridlines).
 TEXT, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 FONTS = ["Arial", "Liberation Sans", "DejaVu Sans"]  # first installed one wins; Liberation Sans has Arial's metrics
+# System colours, shared by the 3 mm vs 8 mm figures: 3 mm in the suture-figure purple, 8 mm in teal.
+SYSTEM_COLORS = {"3mm": "#842996", "8mm": "#2a9d8f"}
+SYSTEM_NAMES = {"3mm": "3 mm", "8mm": "8 mm"}
 MONTHS = {"may": "May", "jun": "Jun", "aug": "Aug", "oct": "Oct"}
 
 

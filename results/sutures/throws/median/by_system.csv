@@ -1,0 +1,3 @@
+system,knots,pigs,throws_mode,per_throw_peak_s,knot_peak_s,throws_median,throws_q1,throws_q3,knot_s_median,knot_s_q1,knot_s_q3,per_throw_s_median,per_throw_s_q1,per_throw_s_q3
+3mm,23,3,3,39.4,144.1,3.0,2.0,3.0,147.1,113.8,204.2,52.6,37.9,84.2
+8mm,39,4,3,40.2,107.1,3.0,3.0,3.0,123.4,105.4,147.0,43.5,35.8,51.6

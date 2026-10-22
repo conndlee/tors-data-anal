@@ -85,6 +85,11 @@ can we make a gui/webapp to scroll through video and mark start and ends of sutu
 - Visual field is a useful new way to judge surgical tools.
 - The paired video and rosbag data could be shared as a public dataset.
 - Limits: pig vs human anatomy, small sample, learning curve on the new system.
+- Limit of the suture timing: "knot tying" is timed from needle through to knot tightened, so it also includes
+  pulling the thread all the way through after the bite. With fresh, long suture this takes longer and is not
+  throwing. So knot tying time and time per throw are overestimated for early stitches, and partly reflect
+  thread length, not the instrument. Supporting data: knot tying shortens over the procedure in 6 of 7 pigs,
+  and the first knot of each block takes longer (median 170 vs 143 s for 3 mm, 133 vs 117 s for 8 mm).
 
 ## Open questions
 

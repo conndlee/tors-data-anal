@@ -72,6 +72,14 @@ This splits each stitch into phases:
 - Jun 15 (3 mm): no muscle repair was done, so it has no muscle_repair block (confirmed 2026-10-20).
   Muscle repair comparisons use the pigs that had one.
 
+## Known measurement issue
+
+- Knot tying (needle through to knot tightened) includes pulling the thread through after the bite.
+  With fresh, long suture this takes longer, so early knots and their time per throw are overestimated.
+  The first knot of each block is slower in both systems (see results/sutures/throws/knot_throws.md).
+- Optional fix, only if a subset is re-annotated: a "thread through" mark between needle through and the
+  first throw, so pull-through time can be separated from throwing.
+
 ## Questions for the team
 
 - Are knots tied with instruments in every case?
